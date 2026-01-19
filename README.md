@@ -1,0 +1,129 @@
+# Raft gRPC Transport
+
+A [gRPC](https://grpc.io/)-based `Transport` implementation for HashiCorp's [Raft](https://github.com/hashicorp/raft) consensus library.
+
+This library allows you to use gRPC for communication between Raft nodes, leveraging HTTP/2 performance, streaming capabilities, and the rich ecosystem of gRPC middleware (auth, logging, tracing, etc.).
+
+## Features
+
+- **Standard gRPC**: Uses Protocol Buffers for efficient serialization (via `buf`).
+- **Streamed Snapshots**: Supports streaming large snapshots over gRPC.
+- **Connection Management**: Lazily establishes and maintains persistent connections to peers.
+- **Drop-in Replacement**: Implements the standard `raft.Transport` interface.
+
+## Installation
+
+```bash
+go get github.com/dhiaayachi/raft-grpc-transport
+```
+
+## Usage
+
+Here is a basic example of how to configure and use the gRPC transport with Raft.
+
+```go
+package main
+
+import (
+	"fmt"
+	"io"
+	"net"
+	"os"
+	"time"
+
+	raftgrpc "github.com/dhiaayachi/raft-grpc-transport"
+	"github.com/hashicorp/raft"
+	"google.golang.org/grpc"
+)
+
+func main() {
+	// 1. Setup network listener
+	addr := "127.0.0.1:50051"
+	lis, err := net.Listen("tcp", addr)
+	if err != nil {
+		panic(fmt.Sprintf("failed to listen: %v", err))
+	}
+
+	// 2. Create gRPC server
+	s := grpc.NewServer()
+
+	// 3. Create the Raft transport and register it with the server
+	transport, err := raftgrpc.NewGrpcTransport(lis.Addr().String(), s)
+	if err != nil {
+		panic(fmt.Sprintf("failed to create transport: %v", err))
+	}
+	defer transport.Close()
+
+	// 4. Start the server (in a goroutine so it doesn't block)
+	go func() {
+		if err := s.Serve(lis); err != nil {
+			panic(fmt.Sprintf("server error: %v", err))
+		}
+	}()
+
+	// 5. Setup Raft configuration
+	config := raft.DefaultConfig()
+	config.LocalID = raft.ServerID("node-1")
+
+	// 6. Setup other Raft dependencies (stores, snapshots, fsm)
+	// For example purposes, using in-memory stores
+	logStore := raft.NewInmemStore()
+	stableStore := raft.NewInmemStore()
+	snapStore := raft.NewInmemSnapshotStore()
+	fsm := &MyFSM{} // Your state machine implementation
+
+	// 7. Create the Raft node
+	r, err := raft.NewRaft(config, fsm, logStore, stableStore, snapStore, transport)
+	if err != nil {
+		panic(fmt.Sprintf("failed to create raft node: %v", err))
+	}
+
+	// 8. Bootstrap the cluster (if this is the first node)
+	// ONLY do this for the very first node in a new cluster
+	configuration := raft.Configuration{
+		Servers: []raft.Server{
+			{
+				ID:      config.LocalID,
+				Address: transport.LocalAddr(),
+			},
+		},
+	}
+	r.BootstrapCluster(configuration)
+
+	fmt.Println("Raft node started successfully!")
+	
+	// Keep the main goroutine running
+	select {}
+}
+
+// Minimal FSM implementation
+type MyFSM struct{}
+func (f *MyFSM) Apply(l *raft.Log) interface{} { return nil }
+func (f *MyFSM) Snapshot() (raft.FSMSnapshot, error) { return &MySnapshot{}, nil }
+func (f *MyFSM) Restore(rc io.ReadCloser) error { return nil }
+
+type MySnapshot struct{}
+func (s *MySnapshot) Persist(sink raft.SnapshotSink) error { return sink.Close() }
+func (s *MySnapshot) Release() {}
+```
+
+## Development
+
+### Prerequisites
+
+- Go 1.22+
+- [buf](https://buf.build/docs/installation) (for protobuf generation)
+
+### Generating Code
+
+If you make changes to the `.proto` files, regenerate the Go code:
+
+```bash
+buf generate
+```
+
+### Running Tests
+
+```bash
+go test ./...
+```

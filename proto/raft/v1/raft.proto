@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package raft.v1;
+
+option go_package = "github.com/dhiaayachi/raft-grpc-transport/gen/go/proto/raft/v1;raftv1";
+
+service RaftTransport {
+  // AppendEntriesPipeline opens a stream for pipelined AppendEntries requests.
+  // This is optional optimization.
+  rpc AppendEntriesPipeline(stream AppendEntriesRequest) returns (stream AppendEntriesResponse);
+
+  // AppendEntries performs a single AppendEntries RPC.
+  rpc AppendEntries(AppendEntriesRequest) returns (AppendEntriesResponse);
+
+  // RequestVote performs a RequestVote RPC.
+  rpc RequestVote(RequestVoteRequest) returns (RequestVoteResponse);
+
+  // InstallSnapshot performs an InstallSnapshot RPC.
+  // The snapshot data is streamed to support large snapshots.
+  rpc InstallSnapshot(stream InstallSnapshotRequest) returns (InstallSnapshotResponse);
+
+  // TimeoutNow is used to start a leadership transfer.
+  rpc TimeoutNow(TimeoutNowRequest) returns (TimeoutNowResponse);
+}
+
+message AppendEntriesRequest {
+  bytes payload = 1;
+}
+
+message AppendEntriesResponse {
+  bytes payload = 1;
+}
+
+message RequestVoteRequest {
+  bytes payload = 1;
+}
+
+message RequestVoteResponse {
+  bytes payload = 1;
+}
+
+message InstallSnapshotRequest {
+  bytes payload = 1;
+}
+
+message InstallSnapshotResponse {
+  bytes payload = 1;
+}
+
+message TimeoutNowRequest {
+  bytes payload = 1;
+}
+
+message TimeoutNowResponse {
+  bytes payload = 1;
+}
