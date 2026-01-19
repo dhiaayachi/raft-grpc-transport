@@ -17,40 +17,87 @@ service RaftTransport {
 
   // InstallSnapshot performs an InstallSnapshot RPC.
   // The snapshot data is streamed to support large snapshots.
+  // The first message contains metadata, subsequent messages contain data chunks.
   rpc InstallSnapshot(stream InstallSnapshotRequest) returns (InstallSnapshotResponse);
 
   // TimeoutNow is used to start a leadership transfer.
   rpc TimeoutNow(TimeoutNowRequest) returns (TimeoutNowResponse);
 }
 
+message RPCHeader {
+  int64 protocol_version = 1;
+  bytes id = 2;
+  bytes addr = 3;
+}
+
+message Log {
+  uint64 index = 1;
+  uint64 term = 2;
+  uint32 type = 3;
+  bytes data = 4;
+  bytes extensions = 5;
+}
+
 message AppendEntriesRequest {
-  bytes payload = 1;
+  RPCHeader header = 1;
+  uint64 term = 2;
+  bytes leader = 3;
+  uint64 prev_log_entry = 4;
+  uint64 prev_log_term = 5;
+  repeated Log entries = 6;
+  uint64 leader_commit_index = 7;
 }
 
 message AppendEntriesResponse {
-  bytes payload = 1;
+  RPCHeader header = 1;
+  uint64 term = 2;
+  uint64 last_log = 3;
+  bool success = 4;
+  bool no_retry_backoff = 5;
 }
 
 message RequestVoteRequest {
-  bytes payload = 1;
+  RPCHeader header = 1;
+  uint64 term = 2;
+  bytes candidate = 3;
+  uint64 last_log_index = 4;
+  uint64 last_log_term = 5;
+  bool leadership_transfer = 6;
 }
 
 message RequestVoteResponse {
-  bytes payload = 1;
+  RPCHeader header = 1;
+  uint64 term = 2;
+  bytes peers = 3;
+  bool granted = 4;
 }
 
 message InstallSnapshotRequest {
-  bytes payload = 1;
+  RPCHeader header = 1;
+  uint64 term = 2;
+  bytes leader = 3;
+  uint64 last_log_index = 4;
+  uint64 last_log_term = 5;
+  bytes peers = 6;
+  bytes configuration = 7;
+  uint64 configuration_index = 8;
+  int64 size = 9;
+  
+  // data chunk for streaming. 
+  // If this is set, metadata fields might be ignored or expected to be in first message.
+  bytes data = 10; 
 }
 
 message InstallSnapshotResponse {
-  bytes payload = 1;
+  RPCHeader header = 1;
+  uint64 term = 2;
+  bool success = 3;
 }
 
 message TimeoutNowRequest {
-  bytes payload = 1;
+  RPCHeader header = 1;
 }
 
 message TimeoutNowResponse {
-  bytes payload = 1;
+  RPCHeader header = 1;
 }

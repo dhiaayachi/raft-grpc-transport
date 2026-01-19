@@ -42,18 +42,6 @@ func TestNewGrpcTransport(t *testing.T) {
 	require.NotEmpty(t, port)
 }
 
-func TestTransport_EncodeDecode(t *testing.T) {
-	// Simple test to verify encode/decode helper works
-	original := "test-string"
-	encoded, err := encode(original)
-	require.NoError(t, err)
-
-	var decoded string
-	err = decode(encoded, &decoded)
-	require.NoError(t, err)
-	require.Equal(t, original, decoded)
-}
-
 func TestTransport_Connection(t *testing.T) {
 	// Setup server 1
 	trans1, s1, l1 := createTestTransport(t, "127.0.0.1:0")
@@ -115,6 +103,9 @@ func TestTransport_AppendEntries(t *testing.T) {
 	req := &raft.AppendEntriesRequest{
 		Term:   1,
 		Leader: []byte("leader"),
+		Entries: []*raft.Log{
+			{Index: 1, Term: 1, Data: []byte("data")},
+		},
 	}
 	resp := &raft.AppendEntriesResponse{}
 

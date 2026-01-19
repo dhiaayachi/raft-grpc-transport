@@ -1,7 +1,6 @@
 package raftgrpc
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -9,7 +8,6 @@ import (
 	"time"
 
 	raftv1 "github.com/dhiaayachi/raft-grpc-transport/gen/go/proto/raft/v1"
-	"github.com/hashicorp/go-msgpack/v2/codec"
 	"github.com/hashicorp/raft"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -42,7 +40,7 @@ type grpcServer struct {
 func NewGrpcTransport(localAddr string, server *grpc.Server) (*GrpcTransport, error) {
 	t := &GrpcTransport{
 		localAddr:  raft.ServerAddress(localAddr),
-		ip:         localAddr, // Storing raw address for now, might need resolution
+		ip:         localAddr,
 		consumerCh: make(chan raft.RPC),
 		peers:      make(map[raft.ServerAddress]*grpc.ClientConn),
 	}
@@ -79,15 +77,7 @@ func (t *GrpcTransport) AppendEntries(id raft.ServerID, target raft.ServerAddres
 	}
 	client := raftv1.NewRaftTransportClient(conn)
 
-	// Encode args
-	payload, err := encode(args)
-	if err != nil {
-		return err
-	}
-
-	req := &raftv1.AppendEntriesRequest{
-		Payload: payload,
-	}
+	req := encodeAppendEntriesRequest(args)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second) // TODO: Make configurable
 	defer cancel()
@@ -97,11 +87,7 @@ func (t *GrpcTransport) AppendEntries(id raft.ServerID, target raft.ServerAddres
 		return err
 	}
 
-	// Decode resp
-	if err := decode(rpcResp.Payload, resp); err != nil {
-		return err
-	}
-
+	decodeAppendEntriesResponse(rpcResp, resp)
 	return nil
 }
 
@@ -113,14 +99,7 @@ func (t *GrpcTransport) RequestVote(id raft.ServerID, target raft.ServerAddress,
 	}
 	client := raftv1.NewRaftTransportClient(conn)
 
-	payload, err := encode(args)
-	if err != nil {
-		return err
-	}
-
-	req := &raftv1.RequestVoteRequest{
-		Payload: payload,
-	}
+	req := encodeRequestVoteRequest(args)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -130,10 +109,7 @@ func (t *GrpcTransport) RequestVote(id raft.ServerID, target raft.ServerAddress,
 		return err
 	}
 
-	if err := decode(rpcResp.Payload, resp); err != nil {
-		return err
-	}
-
+	decodeRequestVoteResponse(rpcResp, resp)
 	return nil
 }
 
@@ -151,11 +127,8 @@ func (t *GrpcTransport) InstallSnapshot(id raft.ServerID, target raft.ServerAddr
 	}
 
 	// First send the arguments
-	argsPayload, err := encode(args)
-	if err != nil {
-		return err
-	}
-	if err := stream.Send(&raftv1.InstallSnapshotRequest{Payload: argsPayload}); err != nil {
+	req := encodeInstallSnapshotRequest(args)
+	if err := stream.Send(req); err != nil {
 		return err
 	}
 
@@ -164,7 +137,11 @@ func (t *GrpcTransport) InstallSnapshot(id raft.ServerID, target raft.ServerAddr
 	for {
 		n, err := data.Read(buf)
 		if n > 0 {
-			if err := stream.Send(&raftv1.InstallSnapshotRequest{Payload: buf[:n]}); err != nil {
+			// Reuse the request structure but only populate payload
+			chunk := &raftv1.InstallSnapshotRequest{
+				Data: buf[:n],
+			}
+			if err := stream.Send(chunk); err != nil {
 				return err
 			}
 		}
@@ -181,10 +158,7 @@ func (t *GrpcTransport) InstallSnapshot(id raft.ServerID, target raft.ServerAddr
 		return err
 	}
 
-	if err := decode(rpcResp.Payload, resp); err != nil {
-		return err
-	}
-
+	decodeInstallSnapshotResponse(rpcResp, resp)
 	return nil
 }
 
@@ -212,14 +186,7 @@ func (t *GrpcTransport) TimeoutNow(id raft.ServerID, target raft.ServerAddress, 
 	}
 	client := raftv1.NewRaftTransportClient(conn)
 
-	payload, err := encode(args)
-	if err != nil {
-		return err
-	}
-
-	req := &raftv1.TimeoutNowRequest{
-		Payload: payload,
-	}
+	req := encodeTimeoutNowRequest(args)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -229,10 +196,7 @@ func (t *GrpcTransport) TimeoutNow(id raft.ServerID, target raft.ServerAddress, 
 		return err
 	}
 
-	if err := decode(rpcResp.Payload, resp); err != nil {
-		return err
-	}
-
+	decodeTimeoutNowResponse(rpcResp, resp)
 	return nil
 }
 
@@ -252,14 +216,11 @@ func (t *GrpcTransport) Close() error {
 // Server Side Implementation (grpcServer)
 
 func (s *grpcServer) AppendEntries(ctx context.Context, req *raftv1.AppendEntriesRequest) (*raftv1.AppendEntriesResponse, error) {
-	var args raft.AppendEntriesRequest
-	if err := decode(req.Payload, &args); err != nil {
-		return nil, err
-	}
+	args := decodeAppendEntriesRequest(req)
 
 	respChan := make(chan raft.RPCResponse, 1)
 	rpc := raft.RPC{
-		Command:  &args,
+		Command:  args,
 		RespChan: respChan,
 	}
 
@@ -270,25 +231,15 @@ func (s *grpcServer) AppendEntries(ctx context.Context, req *raftv1.AppendEntrie
 		return nil, resp.Error
 	}
 
-	payload, err := encode(resp.Response)
-	if err != nil {
-		return nil, err
-	}
-
-	return &raftv1.AppendEntriesResponse{
-		Payload: payload,
-	}, nil
+	return encodeAppendEntriesResponse(resp.Response.(*raft.AppendEntriesResponse)), nil
 }
 
 func (s *grpcServer) RequestVote(ctx context.Context, req *raftv1.RequestVoteRequest) (*raftv1.RequestVoteResponse, error) {
-	var args raft.RequestVoteRequest
-	if err := decode(req.Payload, &args); err != nil {
-		return nil, err
-	}
+	args := decodeRequestVoteRequest(req)
 
 	respChan := make(chan raft.RPCResponse, 1)
 	rpc := raft.RPC{
-		Command:  &args,
+		Command:  args,
 		RespChan: respChan,
 	}
 
@@ -299,14 +250,7 @@ func (s *grpcServer) RequestVote(ctx context.Context, req *raftv1.RequestVoteReq
 		return nil, resp.Error
 	}
 
-	payload, err := encode(resp.Response)
-	if err != nil {
-		return nil, err
-	}
-
-	return &raftv1.RequestVoteResponse{
-		Payload: payload,
-	}, nil
+	return encodeRequestVoteResponse(resp.Response.(*raft.RequestVoteResponse)), nil
 }
 
 func (s *grpcServer) InstallSnapshot(stream raftv1.RaftTransport_InstallSnapshotServer) error {
@@ -316,17 +260,14 @@ func (s *grpcServer) InstallSnapshot(stream raftv1.RaftTransport_InstallSnapshot
 		return err
 	}
 
-	var args raft.InstallSnapshotRequest
-	if err := decode(req.Payload, &args); err != nil {
-		return err
-	}
+	args := decodeInstallSnapshotRequest(req)
 
 	// Create a reader for the remaining stream data
 	reader := &snapshotReader{stream: stream}
 
 	respChan := make(chan raft.RPCResponse, 1)
 	rpc := raft.RPC{
-		Command:  &args,
+		Command:  args,
 		Reader:   reader,
 		RespChan: respChan,
 	}
@@ -338,25 +279,15 @@ func (s *grpcServer) InstallSnapshot(stream raftv1.RaftTransport_InstallSnapshot
 		return resp.Error
 	}
 
-	payload, err := encode(resp.Response)
-	if err != nil {
-		return err
-	}
-
-	return stream.SendAndClose(&raftv1.InstallSnapshotResponse{
-		Payload: payload,
-	})
+	return stream.SendAndClose(encodeInstallSnapshotResponse(resp.Response.(*raft.InstallSnapshotResponse)))
 }
 
 func (s *grpcServer) TimeoutNow(ctx context.Context, req *raftv1.TimeoutNowRequest) (*raftv1.TimeoutNowResponse, error) {
-	var args raft.TimeoutNowRequest
-	if err := decode(req.Payload, &args); err != nil {
-		return nil, err
-	}
+	args := decodeTimeoutNowRequest(req)
 
 	respChan := make(chan raft.RPCResponse, 1)
 	rpc := raft.RPC{
-		Command:  &args,
+		Command:  args,
 		RespChan: respChan,
 	}
 
@@ -367,14 +298,7 @@ func (s *grpcServer) TimeoutNow(ctx context.Context, req *raftv1.TimeoutNowReque
 		return nil, resp.Error
 	}
 
-	payload, err := encode(resp.Response)
-	if err != nil {
-		return nil, err
-	}
-
-	return &raftv1.TimeoutNowResponse{
-		Payload: payload,
-	}, nil
+	return encodeTimeoutNowResponse(resp.Response.(*raft.TimeoutNowResponse)), nil
 }
 
 // Helpers
@@ -421,24 +345,208 @@ func (s *snapshotReader) Read(p []byte) (n int, err error) {
 		return 0, err
 	}
 
-	s.buf = req.Payload
+	// Assuming data is in 'Data' field
+	if len(req.Data) == 0 {
+		// Possibly end of stream or metadata only?
+		// Usually Recv returns EOF at end.
+		// If empty payload received, try again?
+	}
+
+	s.buf = req.Data
 	n = copy(p, s.buf)
 	s.buf = s.buf[n:]
 	return n, nil
 }
 
-// encode serializes the value using msgpack.
-func encode(v interface{}) ([]byte, error) {
-	var buf bytes.Buffer
-	enc := codec.NewEncoder(&buf, &codec.MsgpackHandle{})
-	if err := enc.Encode(v); err != nil {
-		return nil, err
+// Converters
+
+func encodeRPCHeader(h raft.RPCHeader) *raftv1.RPCHeader {
+	return &raftv1.RPCHeader{
+		ProtocolVersion: int64(h.ProtocolVersion),
+		Id:              h.ID,
+		Addr:            h.Addr,
 	}
-	return buf.Bytes(), nil
 }
 
-// decode deserializes the value using msgpack.
-func decode(data []byte, v interface{}) error {
-	dec := codec.NewDecoderBytes(data, &codec.MsgpackHandle{})
-	return dec.Decode(v)
+func decodeRPCHeader(h *raftv1.RPCHeader) raft.RPCHeader {
+	if h == nil {
+		return raft.RPCHeader{}
+	}
+	return raft.RPCHeader{
+		ProtocolVersion: raft.ProtocolVersion(h.ProtocolVersion),
+		ID:              h.Id,
+		Addr:            h.Addr,
+	}
+}
+
+func encodeLog(l *raft.Log) *raftv1.Log {
+	return &raftv1.Log{
+		Index:      l.Index,
+		Term:       l.Term,
+		Type:       uint32(l.Type),
+		Data:       l.Data,
+		Extensions: l.Extensions,
+	}
+}
+
+func decodeLog(l *raftv1.Log) *raft.Log {
+	return &raft.Log{
+		Index:      l.Index,
+		Term:       l.Term,
+		Type:       raft.LogType(l.Type),
+		Data:       l.Data,
+		Extensions: l.Extensions,
+	}
+}
+
+func encodeAppendEntriesRequest(r *raft.AppendEntriesRequest) *raftv1.AppendEntriesRequest {
+	logs := make([]*raftv1.Log, len(r.Entries))
+	for i, l := range r.Entries {
+		logs[i] = encodeLog(l)
+	}
+	return &raftv1.AppendEntriesRequest{
+		Header:            encodeRPCHeader(r.RPCHeader),
+		Term:              r.Term,
+		Leader:            r.Leader,
+		PrevLogEntry:      r.PrevLogEntry,
+		PrevLogTerm:       r.PrevLogTerm,
+		Entries:           logs,
+		LeaderCommitIndex: r.LeaderCommitIndex,
+	}
+}
+
+func decodeAppendEntriesRequest(r *raftv1.AppendEntriesRequest) *raft.AppendEntriesRequest {
+	logs := make([]*raft.Log, len(r.Entries))
+	for i, l := range r.Entries {
+		logs[i] = decodeLog(l)
+	}
+	return &raft.AppendEntriesRequest{
+		RPCHeader:         decodeRPCHeader(r.Header),
+		Term:              r.Term,
+		Leader:            r.Leader,
+		PrevLogEntry:      r.PrevLogEntry,
+		PrevLogTerm:       r.PrevLogTerm,
+		Entries:           logs,
+		LeaderCommitIndex: r.LeaderCommitIndex,
+	}
+}
+
+func encodeAppendEntriesResponse(r *raft.AppendEntriesResponse) *raftv1.AppendEntriesResponse {
+	return &raftv1.AppendEntriesResponse{
+		Header:         encodeRPCHeader(r.RPCHeader),
+		Term:           r.Term,
+		LastLog:        r.LastLog,
+		Success:        r.Success,
+		NoRetryBackoff: r.NoRetryBackoff,
+	}
+}
+
+func decodeAppendEntriesResponse(src *raftv1.AppendEntriesResponse, dst *raft.AppendEntriesResponse) {
+	dst.RPCHeader = decodeRPCHeader(src.Header)
+	dst.Term = src.Term
+	dst.LastLog = src.LastLog
+	dst.Success = src.Success
+	dst.NoRetryBackoff = src.NoRetryBackoff
+}
+
+func encodeRequestVoteRequest(r *raft.RequestVoteRequest) *raftv1.RequestVoteRequest {
+	return &raftv1.RequestVoteRequest{
+		Header:             encodeRPCHeader(r.RPCHeader),
+		Term:               r.Term,
+		Candidate:          r.Candidate,
+		LastLogIndex:       r.LastLogIndex,
+		LastLogTerm:        r.LastLogTerm,
+		LeadershipTransfer: r.LeadershipTransfer,
+	}
+}
+
+func decodeRequestVoteRequest(r *raftv1.RequestVoteRequest) *raft.RequestVoteRequest {
+	return &raft.RequestVoteRequest{
+		RPCHeader:          decodeRPCHeader(r.Header),
+		Term:               r.Term,
+		Candidate:          r.Candidate,
+		LastLogIndex:       r.LastLogIndex,
+		LastLogTerm:        r.LastLogTerm,
+		LeadershipTransfer: r.LeadershipTransfer,
+	}
+}
+
+func encodeRequestVoteResponse(r *raft.RequestVoteResponse) *raftv1.RequestVoteResponse {
+	return &raftv1.RequestVoteResponse{
+		Header:  encodeRPCHeader(r.RPCHeader),
+		Term:    r.Term,
+		Peers:   r.Peers,
+		Granted: r.Granted,
+	}
+}
+
+func decodeRequestVoteResponse(src *raftv1.RequestVoteResponse, dst *raft.RequestVoteResponse) {
+	dst.RPCHeader = decodeRPCHeader(src.Header)
+	dst.Term = src.Term
+	dst.Peers = src.Peers
+	dst.Granted = src.Granted
+}
+
+func encodeInstallSnapshotRequest(r *raft.InstallSnapshotRequest) *raftv1.InstallSnapshotRequest {
+	return &raftv1.InstallSnapshotRequest{
+		Header:             encodeRPCHeader(r.RPCHeader),
+		Term:               r.Term,
+		Leader:             r.Leader,
+		LastLogIndex:       r.LastLogIndex,
+		LastLogTerm:        r.LastLogTerm,
+		Peers:              r.Peers,
+		Configuration:      r.Configuration,
+		ConfigurationIndex: r.ConfigurationIndex,
+		Size:               r.Size,
+	}
+}
+
+func decodeInstallSnapshotRequest(r *raftv1.InstallSnapshotRequest) *raft.InstallSnapshotRequest {
+	return &raft.InstallSnapshotRequest{
+		RPCHeader:          decodeRPCHeader(r.Header),
+		Term:               r.Term,
+		Leader:             r.Leader,
+		LastLogIndex:       r.LastLogIndex,
+		LastLogTerm:        r.LastLogTerm,
+		Peers:              r.Peers,
+		Configuration:      r.Configuration,
+		ConfigurationIndex: r.ConfigurationIndex,
+		Size:               r.Size,
+	}
+}
+
+func encodeInstallSnapshotResponse(r *raft.InstallSnapshotResponse) *raftv1.InstallSnapshotResponse {
+	return &raftv1.InstallSnapshotResponse{
+		Header:  encodeRPCHeader(r.RPCHeader),
+		Term:    r.Term,
+		Success: r.Success,
+	}
+}
+
+func decodeInstallSnapshotResponse(src *raftv1.InstallSnapshotResponse, dst *raft.InstallSnapshotResponse) {
+	dst.RPCHeader = decodeRPCHeader(src.Header)
+	dst.Term = src.Term
+	dst.Success = src.Success
+}
+
+func encodeTimeoutNowRequest(r *raft.TimeoutNowRequest) *raftv1.TimeoutNowRequest {
+	return &raftv1.TimeoutNowRequest{
+		Header: encodeRPCHeader(r.RPCHeader),
+	}
+}
+
+func decodeTimeoutNowRequest(r *raftv1.TimeoutNowRequest) *raft.TimeoutNowRequest {
+	return &raft.TimeoutNowRequest{
+		RPCHeader: decodeRPCHeader(r.Header),
+	}
+}
+
+func encodeTimeoutNowResponse(r *raft.TimeoutNowResponse) *raftv1.TimeoutNowResponse {
+	return &raftv1.TimeoutNowResponse{
+		Header: encodeRPCHeader(r.RPCHeader),
+	}
+}
+
+func decodeTimeoutNowResponse(src *raftv1.TimeoutNowResponse, dst *raft.TimeoutNowResponse) {
+	dst.RPCHeader = decodeRPCHeader(src.Header)
 }

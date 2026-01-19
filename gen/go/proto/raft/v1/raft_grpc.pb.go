@@ -39,6 +39,7 @@ type RaftTransportClient interface {
 	RequestVote(ctx context.Context, in *RequestVoteRequest, opts ...grpc.CallOption) (*RequestVoteResponse, error)
 	// InstallSnapshot performs an InstallSnapshot RPC.
 	// The snapshot data is streamed to support large snapshots.
+	// The first message contains metadata, subsequent messages contain data chunks.
 	InstallSnapshot(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[InstallSnapshotRequest, InstallSnapshotResponse], error)
 	// TimeoutNow is used to start a leadership transfer.
 	TimeoutNow(ctx context.Context, in *TimeoutNowRequest, opts ...grpc.CallOption) (*TimeoutNowResponse, error)
@@ -121,6 +122,7 @@ type RaftTransportServer interface {
 	RequestVote(context.Context, *RequestVoteRequest) (*RequestVoteResponse, error)
 	// InstallSnapshot performs an InstallSnapshot RPC.
 	// The snapshot data is streamed to support large snapshots.
+	// The first message contains metadata, subsequent messages contain data chunks.
 	InstallSnapshot(grpc.ClientStreamingServer[InstallSnapshotRequest, InstallSnapshotResponse]) error
 	// TimeoutNow is used to start a leadership transfer.
 	TimeoutNow(context.Context, *TimeoutNowRequest) (*TimeoutNowResponse, error)
