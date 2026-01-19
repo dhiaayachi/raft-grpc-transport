@@ -32,7 +32,7 @@ jobs:
         run: buf lint
 
       - name: Lint Go
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v6
         with:
           version: latest
           args: --timeout=5m
