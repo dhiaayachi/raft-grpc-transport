@@ -124,6 +124,29 @@ buf generate
 
 ### Running Tests
 
-```bash
-go test ./...
+
+## Migration Transport
+
+The `MigrationTransport` allows you to migrate from one transport (e.g., TCP) to another (e.g., gRPC) with zero downtime. It wraps two transports (Primary and Secondary) and attempts to use the Primary first. If the Primary fails with a specific error (controlled by a predicate function), it falls back to the Secondary.
+
+Incoming RPCs from both transports are handled indiscriminately.
+
+### Usage
+
+```go
+// 1. Create your two transports
+oldTransport := ... // e.g., raft.NewTCPTransport(...)
+newTransport, _ := raftgrpc.NewGrpcTransport(...)
+
+// 2. Define a fallback predicate
+// e.g. Fallback if the connection is refused or unavailable
+shouldFallback := func(err error) bool {
+    // Check error type/content
+    return true
+}
+
+// 3. Create the migration transport
+transport := raftgrpc.NewMigrationTransport(newTransport, oldTransport, shouldFallback)
+
+// 4. Use 'transport' when creating your Raft node
 ```
