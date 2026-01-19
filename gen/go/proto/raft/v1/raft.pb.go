@@ -159,13 +159,13 @@ func (x *Log) GetExtensions() []byte {
 
 type AppendEntriesRequest struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
-	Header            *RPCHeader             `protobuf:"bytes,100,opt,name=header,proto3" json:"header,omitempty"` // Use high tag to avoid conflict if I reorder, though tags reordering is fine
-	Term              uint64                 `protobuf:"varint,1,opt,name=term,proto3" json:"term,omitempty"`
-	Leader            []byte                 `protobuf:"bytes,2,opt,name=leader,proto3" json:"leader,omitempty"`
-	PrevLogEntry      uint64                 `protobuf:"varint,3,opt,name=prev_log_entry,json=prevLogEntry,proto3" json:"prev_log_entry,omitempty"`
-	PrevLogTerm       uint64                 `protobuf:"varint,4,opt,name=prev_log_term,json=prevLogTerm,proto3" json:"prev_log_term,omitempty"`
-	Entries           []*Log                 `protobuf:"bytes,5,rep,name=entries,proto3" json:"entries,omitempty"`
-	LeaderCommitIndex uint64                 `protobuf:"varint,6,opt,name=leader_commit_index,json=leaderCommitIndex,proto3" json:"leader_commit_index,omitempty"`
+	Header            *RPCHeader             `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	Term              uint64                 `protobuf:"varint,2,opt,name=term,proto3" json:"term,omitempty"`
+	Leader            []byte                 `protobuf:"bytes,3,opt,name=leader,proto3" json:"leader,omitempty"`
+	PrevLogEntry      uint64                 `protobuf:"varint,4,opt,name=prev_log_entry,json=prevLogEntry,proto3" json:"prev_log_entry,omitempty"`
+	PrevLogTerm       uint64                 `protobuf:"varint,5,opt,name=prev_log_term,json=prevLogTerm,proto3" json:"prev_log_term,omitempty"`
+	Entries           []*Log                 `protobuf:"bytes,6,rep,name=entries,proto3" json:"entries,omitempty"`
+	LeaderCommitIndex uint64                 `protobuf:"varint,7,opt,name=leader_commit_index,json=leaderCommitIndex,proto3" json:"leader_commit_index,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -251,11 +251,11 @@ func (x *AppendEntriesRequest) GetLeaderCommitIndex() uint64 {
 
 type AppendEntriesResponse struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	Header         *RPCHeader             `protobuf:"bytes,100,opt,name=header,proto3" json:"header,omitempty"`
-	Term           uint64                 `protobuf:"varint,1,opt,name=term,proto3" json:"term,omitempty"`
-	LastLog        uint64                 `protobuf:"varint,2,opt,name=last_log,json=lastLog,proto3" json:"last_log,omitempty"`
-	Success        bool                   `protobuf:"varint,3,opt,name=success,proto3" json:"success,omitempty"`
-	NoRetryBackoff bool                   `protobuf:"varint,4,opt,name=no_retry_backoff,json=noRetryBackoff,proto3" json:"no_retry_backoff,omitempty"`
+	Header         *RPCHeader             `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	Term           uint64                 `protobuf:"varint,2,opt,name=term,proto3" json:"term,omitempty"`
+	LastLog        uint64                 `protobuf:"varint,3,opt,name=last_log,json=lastLog,proto3" json:"last_log,omitempty"`
+	Success        bool                   `protobuf:"varint,4,opt,name=success,proto3" json:"success,omitempty"`
+	NoRetryBackoff bool                   `protobuf:"varint,5,opt,name=no_retry_backoff,json=noRetryBackoff,proto3" json:"no_retry_backoff,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -327,12 +327,12 @@ func (x *AppendEntriesResponse) GetNoRetryBackoff() bool {
 
 type RequestVoteRequest struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
-	Header             *RPCHeader             `protobuf:"bytes,100,opt,name=header,proto3" json:"header,omitempty"`
-	Term               uint64                 `protobuf:"varint,1,opt,name=term,proto3" json:"term,omitempty"`
-	Candidate          []byte                 `protobuf:"bytes,2,opt,name=candidate,proto3" json:"candidate,omitempty"`
-	LastLogIndex       uint64                 `protobuf:"varint,3,opt,name=last_log_index,json=lastLogIndex,proto3" json:"last_log_index,omitempty"`
-	LastLogTerm        uint64                 `protobuf:"varint,4,opt,name=last_log_term,json=lastLogTerm,proto3" json:"last_log_term,omitempty"`
-	LeadershipTransfer bool                   `protobuf:"varint,5,opt,name=leadership_transfer,json=leadershipTransfer,proto3" json:"leadership_transfer,omitempty"`
+	Header             *RPCHeader             `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	Term               uint64                 `protobuf:"varint,2,opt,name=term,proto3" json:"term,omitempty"`
+	Candidate          []byte                 `protobuf:"bytes,3,opt,name=candidate,proto3" json:"candidate,omitempty"`
+	LastLogIndex       uint64                 `protobuf:"varint,4,opt,name=last_log_index,json=lastLogIndex,proto3" json:"last_log_index,omitempty"`
+	LastLogTerm        uint64                 `protobuf:"varint,5,opt,name=last_log_term,json=lastLogTerm,proto3" json:"last_log_term,omitempty"`
+	LeadershipTransfer bool                   `protobuf:"varint,6,opt,name=leadership_transfer,json=leadershipTransfer,proto3" json:"leadership_transfer,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -411,10 +411,10 @@ func (x *RequestVoteRequest) GetLeadershipTransfer() bool {
 
 type RequestVoteResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *RPCHeader             `protobuf:"bytes,100,opt,name=header,proto3" json:"header,omitempty"`
-	Term          uint64                 `protobuf:"varint,1,opt,name=term,proto3" json:"term,omitempty"`
-	Peers         []byte                 `protobuf:"bytes,2,opt,name=peers,proto3" json:"peers,omitempty"`
-	Granted       bool                   `protobuf:"varint,3,opt,name=granted,proto3" json:"granted,omitempty"`
+	Header        *RPCHeader             `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	Term          uint64                 `protobuf:"varint,2,opt,name=term,proto3" json:"term,omitempty"`
+	Peers         []byte                 `protobuf:"bytes,3,opt,name=peers,proto3" json:"peers,omitempty"`
+	Granted       bool                   `protobuf:"varint,4,opt,name=granted,proto3" json:"granted,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -479,18 +479,18 @@ func (x *RequestVoteResponse) GetGranted() bool {
 
 type InstallSnapshotRequest struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
-	Header             *RPCHeader             `protobuf:"bytes,100,opt,name=header,proto3" json:"header,omitempty"`
-	Term               uint64                 `protobuf:"varint,1,opt,name=term,proto3" json:"term,omitempty"`
-	Leader             []byte                 `protobuf:"bytes,2,opt,name=leader,proto3" json:"leader,omitempty"`
-	LastLogIndex       uint64                 `protobuf:"varint,3,opt,name=last_log_index,json=lastLogIndex,proto3" json:"last_log_index,omitempty"`
-	LastLogTerm        uint64                 `protobuf:"varint,4,opt,name=last_log_term,json=lastLogTerm,proto3" json:"last_log_term,omitempty"`
-	Peers              []byte                 `protobuf:"bytes,5,opt,name=peers,proto3" json:"peers,omitempty"`
-	Configuration      []byte                 `protobuf:"bytes,6,opt,name=configuration,proto3" json:"configuration,omitempty"`
-	ConfigurationIndex uint64                 `protobuf:"varint,7,opt,name=configuration_index,json=configurationIndex,proto3" json:"configuration_index,omitempty"`
-	Size               int64                  `protobuf:"varint,8,opt,name=size,proto3" json:"size,omitempty"`
+	Header             *RPCHeader             `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	Term               uint64                 `protobuf:"varint,2,opt,name=term,proto3" json:"term,omitempty"`
+	Leader             []byte                 `protobuf:"bytes,3,opt,name=leader,proto3" json:"leader,omitempty"`
+	LastLogIndex       uint64                 `protobuf:"varint,4,opt,name=last_log_index,json=lastLogIndex,proto3" json:"last_log_index,omitempty"`
+	LastLogTerm        uint64                 `protobuf:"varint,5,opt,name=last_log_term,json=lastLogTerm,proto3" json:"last_log_term,omitempty"`
+	Peers              []byte                 `protobuf:"bytes,6,opt,name=peers,proto3" json:"peers,omitempty"`
+	Configuration      []byte                 `protobuf:"bytes,7,opt,name=configuration,proto3" json:"configuration,omitempty"`
+	ConfigurationIndex uint64                 `protobuf:"varint,8,opt,name=configuration_index,json=configurationIndex,proto3" json:"configuration_index,omitempty"`
+	Size               int64                  `protobuf:"varint,9,opt,name=size,proto3" json:"size,omitempty"`
 	// data chunk for streaming.
 	// If this is set, metadata fields might be ignored or expected to be in first message.
-	Data          []byte `protobuf:"bytes,9,opt,name=data,proto3" json:"data,omitempty"`
+	Data          []byte `protobuf:"bytes,10,opt,name=data,proto3" json:"data,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -597,9 +597,9 @@ func (x *InstallSnapshotRequest) GetData() []byte {
 
 type InstallSnapshotResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *RPCHeader             `protobuf:"bytes,100,opt,name=header,proto3" json:"header,omitempty"`
-	Term          uint64                 `protobuf:"varint,1,opt,name=term,proto3" json:"term,omitempty"`
-	Success       bool                   `protobuf:"varint,2,opt,name=success,proto3" json:"success,omitempty"`
+	Header        *RPCHeader             `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	Term          uint64                 `protobuf:"varint,2,opt,name=term,proto3" json:"term,omitempty"`
+	Success       bool                   `protobuf:"varint,3,opt,name=success,proto3" json:"success,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -657,7 +657,7 @@ func (x *InstallSnapshotResponse) GetSuccess() bool {
 
 type TimeoutNowRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *RPCHeader             `protobuf:"bytes,100,opt,name=header,proto3" json:"header,omitempty"`
+	Header        *RPCHeader             `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -701,7 +701,7 @@ func (x *TimeoutNowRequest) GetHeader() *RPCHeader {
 
 type TimeoutNowResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *RPCHeader             `protobuf:"bytes,100,opt,name=header,proto3" json:"header,omitempty"`
+	Header        *RPCHeader             `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -761,50 +761,51 @@ const file_proto_raft_v1_raft_proto_rawDesc = "" +
 	"extensions\x18\x05 \x01(\fR\n" +
 	"extensions\"\x90\x02\n" +
 	"\x14AppendEntriesRequest\x12*\n" +
-	"\x06header\x18d \x01(\v2\x12.raft.v1.RPCHeaderR\x06header\x12\x12\n" +
-	"\x04term\x18\x01 \x01(\x04R\x04term\x12\x16\n" +
-	"\x06leader\x18\x02 \x01(\fR\x06leader\x12$\n" +
-	"\x0eprev_log_entry\x18\x03 \x01(\x04R\fprevLogEntry\x12\"\n" +
-	"\rprev_log_term\x18\x04 \x01(\x04R\vprevLogTerm\x12&\n" +
-	"\aentries\x18\x05 \x03(\v2\f.raft.v1.LogR\aentries\x12.\n" +
-	"\x13leader_commit_index\x18\x06 \x01(\x04R\x11leaderCommitIndex\"\xb6\x01\n" +
+	"\x06header\x18\x01 \x01(\v2\x12.raft.v1.RPCHeaderR\x06header\x12\x12\n" +
+	"\x04term\x18\x02 \x01(\x04R\x04term\x12\x16\n" +
+	"\x06leader\x18\x03 \x01(\fR\x06leader\x12$\n" +
+	"\x0eprev_log_entry\x18\x04 \x01(\x04R\fprevLogEntry\x12\"\n" +
+	"\rprev_log_term\x18\x05 \x01(\x04R\vprevLogTerm\x12&\n" +
+	"\aentries\x18\x06 \x03(\v2\f.raft.v1.LogR\aentries\x12.\n" +
+	"\x13leader_commit_index\x18\a \x01(\x04R\x11leaderCommitIndex\"\xb6\x01\n" +
 	"\x15AppendEntriesResponse\x12*\n" +
-	"\x06header\x18d \x01(\v2\x12.raft.v1.RPCHeaderR\x06header\x12\x12\n" +
-	"\x04term\x18\x01 \x01(\x04R\x04term\x12\x19\n" +
-	"\blast_log\x18\x02 \x01(\x04R\alastLog\x12\x18\n" +
-	"\asuccess\x18\x03 \x01(\bR\asuccess\x12(\n" +
-	"\x10no_retry_backoff\x18\x04 \x01(\bR\x0enoRetryBackoff\"\xed\x01\n" +
+	"\x06header\x18\x01 \x01(\v2\x12.raft.v1.RPCHeaderR\x06header\x12\x12\n" +
+	"\x04term\x18\x02 \x01(\x04R\x04term\x12\x19\n" +
+	"\blast_log\x18\x03 \x01(\x04R\alastLog\x12\x18\n" +
+	"\asuccess\x18\x04 \x01(\bR\asuccess\x12(\n" +
+	"\x10no_retry_backoff\x18\x05 \x01(\bR\x0enoRetryBackoff\"\xed\x01\n" +
 	"\x12RequestVoteRequest\x12*\n" +
-	"\x06header\x18d \x01(\v2\x12.raft.v1.RPCHeaderR\x06header\x12\x12\n" +
-	"\x04term\x18\x01 \x01(\x04R\x04term\x12\x1c\n" +
-	"\tcandidate\x18\x02 \x01(\fR\tcandidate\x12$\n" +
-	"\x0elast_log_index\x18\x03 \x01(\x04R\flastLogIndex\x12\"\n" +
-	"\rlast_log_term\x18\x04 \x01(\x04R\vlastLogTerm\x12/\n" +
-	"\x13leadership_transfer\x18\x05 \x01(\bR\x12leadershipTransfer\"\x85\x01\n" +
+	"\x06header\x18\x01 \x01(\v2\x12.raft.v1.RPCHeaderR\x06header\x12\x12\n" +
+	"\x04term\x18\x02 \x01(\x04R\x04term\x12\x1c\n" +
+	"\tcandidate\x18\x03 \x01(\fR\tcandidate\x12$\n" +
+	"\x0elast_log_index\x18\x04 \x01(\x04R\flastLogIndex\x12\"\n" +
+	"\rlast_log_term\x18\x05 \x01(\x04R\vlastLogTerm\x12/\n" +
+	"\x13leadership_transfer\x18\x06 \x01(\bR\x12leadershipTransfer\"\x85\x01\n" +
 	"\x13RequestVoteResponse\x12*\n" +
-	"\x06header\x18d \x01(\v2\x12.raft.v1.RPCHeaderR\x06header\x12\x12\n" +
-	"\x04term\x18\x01 \x01(\x04R\x04term\x12\x14\n" +
-	"\x05peers\x18\x02 \x01(\fR\x05peers\x12\x18\n" +
-	"\agranted\x18\x03 \x01(\bR\agranted\"\xcf\x02\n" +
+	"\x06header\x18\x01 \x01(\v2\x12.raft.v1.RPCHeaderR\x06header\x12\x12\n" +
+	"\x04term\x18\x02 \x01(\x04R\x04term\x12\x14\n" +
+	"\x05peers\x18\x03 \x01(\fR\x05peers\x12\x18\n" +
+	"\agranted\x18\x04 \x01(\bR\agranted\"\xcf\x02\n" +
 	"\x16InstallSnapshotRequest\x12*\n" +
-	"\x06header\x18d \x01(\v2\x12.raft.v1.RPCHeaderR\x06header\x12\x12\n" +
-	"\x04term\x18\x01 \x01(\x04R\x04term\x12\x16\n" +
-	"\x06leader\x18\x02 \x01(\fR\x06leader\x12$\n" +
-	"\x0elast_log_index\x18\x03 \x01(\x04R\flastLogIndex\x12\"\n" +
-	"\rlast_log_term\x18\x04 \x01(\x04R\vlastLogTerm\x12\x14\n" +
-	"\x05peers\x18\x05 \x01(\fR\x05peers\x12$\n" +
-	"\rconfiguration\x18\x06 \x01(\fR\rconfiguration\x12/\n" +
-	"\x13configuration_index\x18\a \x01(\x04R\x12configurationIndex\x12\x12\n" +
-	"\x04size\x18\b \x01(\x03R\x04size\x12\x12\n" +
-	"\x04data\x18\t \x01(\fR\x04data\"s\n" +
+	"\x06header\x18\x01 \x01(\v2\x12.raft.v1.RPCHeaderR\x06header\x12\x12\n" +
+	"\x04term\x18\x02 \x01(\x04R\x04term\x12\x16\n" +
+	"\x06leader\x18\x03 \x01(\fR\x06leader\x12$\n" +
+	"\x0elast_log_index\x18\x04 \x01(\x04R\flastLogIndex\x12\"\n" +
+	"\rlast_log_term\x18\x05 \x01(\x04R\vlastLogTerm\x12\x14\n" +
+	"\x05peers\x18\x06 \x01(\fR\x05peers\x12$\n" +
+	"\rconfiguration\x18\a \x01(\fR\rconfiguration\x12/\n" +
+	"\x13configuration_index\x18\b \x01(\x04R\x12configurationIndex\x12\x12\n" +
+	"\x04size\x18\t \x01(\x03R\x04size\x12\x12\n" +
+	"\x04data\x18\n" +
+	" \x01(\fR\x04data\"s\n" +
 	"\x17InstallSnapshotResponse\x12*\n" +
-	"\x06header\x18d \x01(\v2\x12.raft.v1.RPCHeaderR\x06header\x12\x12\n" +
-	"\x04term\x18\x01 \x01(\x04R\x04term\x12\x18\n" +
-	"\asuccess\x18\x02 \x01(\bR\asuccess\"?\n" +
+	"\x06header\x18\x01 \x01(\v2\x12.raft.v1.RPCHeaderR\x06header\x12\x12\n" +
+	"\x04term\x18\x02 \x01(\x04R\x04term\x12\x18\n" +
+	"\asuccess\x18\x03 \x01(\bR\asuccess\"?\n" +
 	"\x11TimeoutNowRequest\x12*\n" +
-	"\x06header\x18d \x01(\v2\x12.raft.v1.RPCHeaderR\x06header\"@\n" +
+	"\x06header\x18\x01 \x01(\v2\x12.raft.v1.RPCHeaderR\x06header\"@\n" +
 	"\x12TimeoutNowResponse\x12*\n" +
-	"\x06header\x18d \x01(\v2\x12.raft.v1.RPCHeaderR\x06header2\xa4\x03\n" +
+	"\x06header\x18\x01 \x01(\v2\x12.raft.v1.RPCHeaderR\x06header2\xa4\x03\n" +
 	"\rRaftTransport\x12Z\n" +
 	"\x15AppendEntriesPipeline\x12\x1d.raft.v1.AppendEntriesRequest\x1a\x1e.raft.v1.AppendEntriesResponse(\x010\x01\x12N\n" +
 	"\rAppendEntries\x12\x1d.raft.v1.AppendEntriesRequest\x1a\x1e.raft.v1.AppendEntriesResponse\x12H\n" +
