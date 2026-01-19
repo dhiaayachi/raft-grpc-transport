@@ -1,13 +1,13 @@
 syntax = "proto3";
 
-package raft.v1;
+package proto.raft.v1;
 
 option go_package = "github.com/dhiaayachi/raft-grpc-transport/gen/go/proto/raft/v1;raftv1";
 
-service RaftTransport {
+service RaftTransportService {
   // AppendEntriesPipeline opens a stream for pipelined AppendEntries requests.
   // This is optional optimization.
-  rpc AppendEntriesPipeline(stream AppendEntriesRequest) returns (stream AppendEntriesResponse);
+  rpc AppendEntriesPipeline(stream AppendEntriesPipelineRequest) returns (stream AppendEntriesPipelineResponse);
 
   // AppendEntries performs a single AppendEntries RPC.
   rpc AppendEntries(AppendEntriesRequest) returns (AppendEntriesResponse);
@@ -49,6 +49,24 @@ message AppendEntriesRequest {
 }
 
 message AppendEntriesResponse {
+  RPCHeader header = 1;
+  uint64 term = 2;
+  uint64 last_log = 3;
+  bool success = 4;
+  bool no_retry_backoff = 5;
+}
+
+message AppendEntriesPipelineRequest {
+  RPCHeader header = 1;
+  uint64 term = 2;
+  bytes leader = 3;
+  uint64 prev_log_entry = 4;
+  uint64 prev_log_term = 5;
+  repeated Log entries = 6;
+  uint64 leader_commit_index = 7;
+}
+
+message AppendEntriesPipelineResponse {
   RPCHeader header = 1;
   uint64 term = 2;
   uint64 last_log = 3;

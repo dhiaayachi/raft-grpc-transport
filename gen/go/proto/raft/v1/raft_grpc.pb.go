@@ -19,20 +19,20 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RaftTransport_AppendEntriesPipeline_FullMethodName = "/raft.v1.RaftTransport/AppendEntriesPipeline"
-	RaftTransport_AppendEntries_FullMethodName         = "/raft.v1.RaftTransport/AppendEntries"
-	RaftTransport_RequestVote_FullMethodName           = "/raft.v1.RaftTransport/RequestVote"
-	RaftTransport_InstallSnapshot_FullMethodName       = "/raft.v1.RaftTransport/InstallSnapshot"
-	RaftTransport_TimeoutNow_FullMethodName            = "/raft.v1.RaftTransport/TimeoutNow"
+	RaftTransportService_AppendEntriesPipeline_FullMethodName = "/proto.raft.v1.RaftTransportService/AppendEntriesPipeline"
+	RaftTransportService_AppendEntries_FullMethodName         = "/proto.raft.v1.RaftTransportService/AppendEntries"
+	RaftTransportService_RequestVote_FullMethodName           = "/proto.raft.v1.RaftTransportService/RequestVote"
+	RaftTransportService_InstallSnapshot_FullMethodName       = "/proto.raft.v1.RaftTransportService/InstallSnapshot"
+	RaftTransportService_TimeoutNow_FullMethodName            = "/proto.raft.v1.RaftTransportService/TimeoutNow"
 )
 
-// RaftTransportClient is the client API for RaftTransport service.
+// RaftTransportServiceClient is the client API for RaftTransportService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type RaftTransportClient interface {
+type RaftTransportServiceClient interface {
 	// AppendEntriesPipeline opens a stream for pipelined AppendEntries requests.
 	// This is optional optimization.
-	AppendEntriesPipeline(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[AppendEntriesRequest, AppendEntriesResponse], error)
+	AppendEntriesPipeline(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[AppendEntriesPipelineRequest, AppendEntriesPipelineResponse], error)
 	// AppendEntries performs a single AppendEntries RPC.
 	AppendEntries(ctx context.Context, in *AppendEntriesRequest, opts ...grpc.CallOption) (*AppendEntriesResponse, error)
 	// RequestVote performs a RequestVote RPC.
@@ -45,50 +45,50 @@ type RaftTransportClient interface {
 	TimeoutNow(ctx context.Context, in *TimeoutNowRequest, opts ...grpc.CallOption) (*TimeoutNowResponse, error)
 }
 
-type raftTransportClient struct {
+type raftTransportServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewRaftTransportClient(cc grpc.ClientConnInterface) RaftTransportClient {
-	return &raftTransportClient{cc}
+func NewRaftTransportServiceClient(cc grpc.ClientConnInterface) RaftTransportServiceClient {
+	return &raftTransportServiceClient{cc}
 }
 
-func (c *raftTransportClient) AppendEntriesPipeline(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[AppendEntriesRequest, AppendEntriesResponse], error) {
+func (c *raftTransportServiceClient) AppendEntriesPipeline(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[AppendEntriesPipelineRequest, AppendEntriesPipelineResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &RaftTransport_ServiceDesc.Streams[0], RaftTransport_AppendEntriesPipeline_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &RaftTransportService_ServiceDesc.Streams[0], RaftTransportService_AppendEntriesPipeline_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[AppendEntriesRequest, AppendEntriesResponse]{ClientStream: stream}
+	x := &grpc.GenericClientStream[AppendEntriesPipelineRequest, AppendEntriesPipelineResponse]{ClientStream: stream}
 	return x, nil
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type RaftTransport_AppendEntriesPipelineClient = grpc.BidiStreamingClient[AppendEntriesRequest, AppendEntriesResponse]
+type RaftTransportService_AppendEntriesPipelineClient = grpc.BidiStreamingClient[AppendEntriesPipelineRequest, AppendEntriesPipelineResponse]
 
-func (c *raftTransportClient) AppendEntries(ctx context.Context, in *AppendEntriesRequest, opts ...grpc.CallOption) (*AppendEntriesResponse, error) {
+func (c *raftTransportServiceClient) AppendEntries(ctx context.Context, in *AppendEntriesRequest, opts ...grpc.CallOption) (*AppendEntriesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AppendEntriesResponse)
-	err := c.cc.Invoke(ctx, RaftTransport_AppendEntries_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, RaftTransportService_AppendEntries_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *raftTransportClient) RequestVote(ctx context.Context, in *RequestVoteRequest, opts ...grpc.CallOption) (*RequestVoteResponse, error) {
+func (c *raftTransportServiceClient) RequestVote(ctx context.Context, in *RequestVoteRequest, opts ...grpc.CallOption) (*RequestVoteResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(RequestVoteResponse)
-	err := c.cc.Invoke(ctx, RaftTransport_RequestVote_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, RaftTransportService_RequestVote_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *raftTransportClient) InstallSnapshot(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[InstallSnapshotRequest, InstallSnapshotResponse], error) {
+func (c *raftTransportServiceClient) InstallSnapshot(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[InstallSnapshotRequest, InstallSnapshotResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &RaftTransport_ServiceDesc.Streams[1], RaftTransport_InstallSnapshot_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &RaftTransportService_ServiceDesc.Streams[1], RaftTransportService_InstallSnapshot_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -97,25 +97,25 @@ func (c *raftTransportClient) InstallSnapshot(ctx context.Context, opts ...grpc.
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type RaftTransport_InstallSnapshotClient = grpc.ClientStreamingClient[InstallSnapshotRequest, InstallSnapshotResponse]
+type RaftTransportService_InstallSnapshotClient = grpc.ClientStreamingClient[InstallSnapshotRequest, InstallSnapshotResponse]
 
-func (c *raftTransportClient) TimeoutNow(ctx context.Context, in *TimeoutNowRequest, opts ...grpc.CallOption) (*TimeoutNowResponse, error) {
+func (c *raftTransportServiceClient) TimeoutNow(ctx context.Context, in *TimeoutNowRequest, opts ...grpc.CallOption) (*TimeoutNowResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(TimeoutNowResponse)
-	err := c.cc.Invoke(ctx, RaftTransport_TimeoutNow_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, RaftTransportService_TimeoutNow_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// RaftTransportServer is the server API for RaftTransport service.
-// All implementations must embed UnimplementedRaftTransportServer
+// RaftTransportServiceServer is the server API for RaftTransportService service.
+// All implementations must embed UnimplementedRaftTransportServiceServer
 // for forward compatibility.
-type RaftTransportServer interface {
+type RaftTransportServiceServer interface {
 	// AppendEntriesPipeline opens a stream for pipelined AppendEntries requests.
 	// This is optional optimization.
-	AppendEntriesPipeline(grpc.BidiStreamingServer[AppendEntriesRequest, AppendEntriesResponse]) error
+	AppendEntriesPipeline(grpc.BidiStreamingServer[AppendEntriesPipelineRequest, AppendEntriesPipelineResponse]) error
 	// AppendEntries performs a single AppendEntries RPC.
 	AppendEntries(context.Context, *AppendEntriesRequest) (*AppendEntriesResponse, error)
 	// RequestVote performs a RequestVote RPC.
@@ -126,150 +126,150 @@ type RaftTransportServer interface {
 	InstallSnapshot(grpc.ClientStreamingServer[InstallSnapshotRequest, InstallSnapshotResponse]) error
 	// TimeoutNow is used to start a leadership transfer.
 	TimeoutNow(context.Context, *TimeoutNowRequest) (*TimeoutNowResponse, error)
-	mustEmbedUnimplementedRaftTransportServer()
+	mustEmbedUnimplementedRaftTransportServiceServer()
 }
 
-// UnimplementedRaftTransportServer must be embedded to have
+// UnimplementedRaftTransportServiceServer must be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
 // pointer dereference when methods are called.
-type UnimplementedRaftTransportServer struct{}
+type UnimplementedRaftTransportServiceServer struct{}
 
-func (UnimplementedRaftTransportServer) AppendEntriesPipeline(grpc.BidiStreamingServer[AppendEntriesRequest, AppendEntriesResponse]) error {
+func (UnimplementedRaftTransportServiceServer) AppendEntriesPipeline(grpc.BidiStreamingServer[AppendEntriesPipelineRequest, AppendEntriesPipelineResponse]) error {
 	return status.Error(codes.Unimplemented, "method AppendEntriesPipeline not implemented")
 }
-func (UnimplementedRaftTransportServer) AppendEntries(context.Context, *AppendEntriesRequest) (*AppendEntriesResponse, error) {
+func (UnimplementedRaftTransportServiceServer) AppendEntries(context.Context, *AppendEntriesRequest) (*AppendEntriesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method AppendEntries not implemented")
 }
-func (UnimplementedRaftTransportServer) RequestVote(context.Context, *RequestVoteRequest) (*RequestVoteResponse, error) {
+func (UnimplementedRaftTransportServiceServer) RequestVote(context.Context, *RequestVoteRequest) (*RequestVoteResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RequestVote not implemented")
 }
-func (UnimplementedRaftTransportServer) InstallSnapshot(grpc.ClientStreamingServer[InstallSnapshotRequest, InstallSnapshotResponse]) error {
+func (UnimplementedRaftTransportServiceServer) InstallSnapshot(grpc.ClientStreamingServer[InstallSnapshotRequest, InstallSnapshotResponse]) error {
 	return status.Error(codes.Unimplemented, "method InstallSnapshot not implemented")
 }
-func (UnimplementedRaftTransportServer) TimeoutNow(context.Context, *TimeoutNowRequest) (*TimeoutNowResponse, error) {
+func (UnimplementedRaftTransportServiceServer) TimeoutNow(context.Context, *TimeoutNowRequest) (*TimeoutNowResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method TimeoutNow not implemented")
 }
-func (UnimplementedRaftTransportServer) mustEmbedUnimplementedRaftTransportServer() {}
-func (UnimplementedRaftTransportServer) testEmbeddedByValue()                       {}
+func (UnimplementedRaftTransportServiceServer) mustEmbedUnimplementedRaftTransportServiceServer() {}
+func (UnimplementedRaftTransportServiceServer) testEmbeddedByValue()                              {}
 
-// UnsafeRaftTransportServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to RaftTransportServer will
+// UnsafeRaftTransportServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to RaftTransportServiceServer will
 // result in compilation errors.
-type UnsafeRaftTransportServer interface {
-	mustEmbedUnimplementedRaftTransportServer()
+type UnsafeRaftTransportServiceServer interface {
+	mustEmbedUnimplementedRaftTransportServiceServer()
 }
 
-func RegisterRaftTransportServer(s grpc.ServiceRegistrar, srv RaftTransportServer) {
-	// If the following call panics, it indicates UnimplementedRaftTransportServer was
+func RegisterRaftTransportServiceServer(s grpc.ServiceRegistrar, srv RaftTransportServiceServer) {
+	// If the following call panics, it indicates UnimplementedRaftTransportServiceServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
 	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
 		t.testEmbeddedByValue()
 	}
-	s.RegisterService(&RaftTransport_ServiceDesc, srv)
+	s.RegisterService(&RaftTransportService_ServiceDesc, srv)
 }
 
-func _RaftTransport_AppendEntriesPipeline_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(RaftTransportServer).AppendEntriesPipeline(&grpc.GenericServerStream[AppendEntriesRequest, AppendEntriesResponse]{ServerStream: stream})
+func _RaftTransportService_AppendEntriesPipeline_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(RaftTransportServiceServer).AppendEntriesPipeline(&grpc.GenericServerStream[AppendEntriesPipelineRequest, AppendEntriesPipelineResponse]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type RaftTransport_AppendEntriesPipelineServer = grpc.BidiStreamingServer[AppendEntriesRequest, AppendEntriesResponse]
+type RaftTransportService_AppendEntriesPipelineServer = grpc.BidiStreamingServer[AppendEntriesPipelineRequest, AppendEntriesPipelineResponse]
 
-func _RaftTransport_AppendEntries_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _RaftTransportService_AppendEntries_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AppendEntriesRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RaftTransportServer).AppendEntries(ctx, in)
+		return srv.(RaftTransportServiceServer).AppendEntries(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RaftTransport_AppendEntries_FullMethodName,
+		FullMethod: RaftTransportService_AppendEntries_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RaftTransportServer).AppendEntries(ctx, req.(*AppendEntriesRequest))
+		return srv.(RaftTransportServiceServer).AppendEntries(ctx, req.(*AppendEntriesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RaftTransport_RequestVote_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _RaftTransportService_RequestVote_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RequestVoteRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RaftTransportServer).RequestVote(ctx, in)
+		return srv.(RaftTransportServiceServer).RequestVote(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RaftTransport_RequestVote_FullMethodName,
+		FullMethod: RaftTransportService_RequestVote_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RaftTransportServer).RequestVote(ctx, req.(*RequestVoteRequest))
+		return srv.(RaftTransportServiceServer).RequestVote(ctx, req.(*RequestVoteRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RaftTransport_InstallSnapshot_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(RaftTransportServer).InstallSnapshot(&grpc.GenericServerStream[InstallSnapshotRequest, InstallSnapshotResponse]{ServerStream: stream})
+func _RaftTransportService_InstallSnapshot_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(RaftTransportServiceServer).InstallSnapshot(&grpc.GenericServerStream[InstallSnapshotRequest, InstallSnapshotResponse]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type RaftTransport_InstallSnapshotServer = grpc.ClientStreamingServer[InstallSnapshotRequest, InstallSnapshotResponse]
+type RaftTransportService_InstallSnapshotServer = grpc.ClientStreamingServer[InstallSnapshotRequest, InstallSnapshotResponse]
 
-func _RaftTransport_TimeoutNow_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _RaftTransportService_TimeoutNow_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(TimeoutNowRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RaftTransportServer).TimeoutNow(ctx, in)
+		return srv.(RaftTransportServiceServer).TimeoutNow(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RaftTransport_TimeoutNow_FullMethodName,
+		FullMethod: RaftTransportService_TimeoutNow_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RaftTransportServer).TimeoutNow(ctx, req.(*TimeoutNowRequest))
+		return srv.(RaftTransportServiceServer).TimeoutNow(ctx, req.(*TimeoutNowRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// RaftTransport_ServiceDesc is the grpc.ServiceDesc for RaftTransport service.
+// RaftTransportService_ServiceDesc is the grpc.ServiceDesc for RaftTransportService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var RaftTransport_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "raft.v1.RaftTransport",
-	HandlerType: (*RaftTransportServer)(nil),
+var RaftTransportService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "proto.raft.v1.RaftTransportService",
+	HandlerType: (*RaftTransportServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "AppendEntries",
-			Handler:    _RaftTransport_AppendEntries_Handler,
+			Handler:    _RaftTransportService_AppendEntries_Handler,
 		},
 		{
 			MethodName: "RequestVote",
-			Handler:    _RaftTransport_RequestVote_Handler,
+			Handler:    _RaftTransportService_RequestVote_Handler,
 		},
 		{
 			MethodName: "TimeoutNow",
-			Handler:    _RaftTransport_TimeoutNow_Handler,
+			Handler:    _RaftTransportService_TimeoutNow_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "AppendEntriesPipeline",
-			Handler:       _RaftTransport_AppendEntriesPipeline_Handler,
+			Handler:       _RaftTransportService_AppendEntriesPipeline_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},
 		{
 			StreamName:    "InstallSnapshot",
-			Handler:       _RaftTransport_InstallSnapshot_Handler,
+			Handler:       _RaftTransportService_InstallSnapshot_Handler,
 			ClientStreams: true,
 		},
 	},

@@ -29,9 +29,9 @@ type GrpcTransport struct {
 	peersMutex sync.RWMutex
 }
 
-// grpcServer implements the generated RaftTransportServer interface.
+// grpcServer implements the generated RaftTransportServiceServer interface.
 type grpcServer struct {
-	raftv1.UnimplementedRaftTransportServer
+	raftv1.UnimplementedRaftTransportServiceServer
 	trans *GrpcTransport
 }
 
@@ -47,7 +47,7 @@ func NewGrpcTransport(localAddr string, server *grpc.Server) (*GrpcTransport, er
 
 	// Register the server implementation
 	srv := &grpcServer{trans: t}
-	raftv1.RegisterRaftTransportServer(server, srv)
+	raftv1.RegisterRaftTransportServiceServer(server, srv)
 
 	return t, nil
 }
@@ -75,7 +75,7 @@ func (t *GrpcTransport) AppendEntries(id raft.ServerID, target raft.ServerAddres
 	if err != nil {
 		return err
 	}
-	client := raftv1.NewRaftTransportClient(conn)
+	client := raftv1.NewRaftTransportServiceClient(conn)
 
 	req := encodeAppendEntriesRequest(args)
 
@@ -97,7 +97,7 @@ func (t *GrpcTransport) RequestVote(id raft.ServerID, target raft.ServerAddress,
 	if err != nil {
 		return err
 	}
-	client := raftv1.NewRaftTransportClient(conn)
+	client := raftv1.NewRaftTransportServiceClient(conn)
 
 	req := encodeRequestVoteRequest(args)
 
@@ -119,7 +119,7 @@ func (t *GrpcTransport) InstallSnapshot(id raft.ServerID, target raft.ServerAddr
 	if err != nil {
 		return err
 	}
-	client := raftv1.NewRaftTransportClient(conn)
+	client := raftv1.NewRaftTransportServiceClient(conn)
 
 	stream, err := client.InstallSnapshot(context.Background())
 	if err != nil {
@@ -184,7 +184,7 @@ func (t *GrpcTransport) TimeoutNow(id raft.ServerID, target raft.ServerAddress, 
 	if err != nil {
 		return err
 	}
-	client := raftv1.NewRaftTransportClient(conn)
+	client := raftv1.NewRaftTransportServiceClient(conn)
 
 	req := encodeTimeoutNowRequest(args)
 
@@ -253,7 +253,7 @@ func (s *grpcServer) RequestVote(ctx context.Context, req *raftv1.RequestVoteReq
 	return encodeRequestVoteResponse(resp.Response.(*raft.RequestVoteResponse)), nil
 }
 
-func (s *grpcServer) InstallSnapshot(stream raftv1.RaftTransport_InstallSnapshotServer) error {
+func (s *grpcServer) InstallSnapshot(stream raftv1.RaftTransportService_InstallSnapshotServer) error {
 	// Read first message to get args
 	req, err := stream.Recv()
 	if err != nil {
@@ -301,6 +301,10 @@ func (s *grpcServer) TimeoutNow(ctx context.Context, req *raftv1.TimeoutNowReque
 	return encodeTimeoutNowResponse(resp.Response.(*raft.TimeoutNowResponse)), nil
 }
 
+func (s *grpcServer) AppendEntriesPipeline(stream raftv1.RaftTransportService_AppendEntriesPipelineServer) error {
+	return fmt.Errorf("not implemented")
+}
+
 // Helpers
 
 func (t *GrpcTransport) getPeer(addr raft.ServerAddress) (*grpc.ClientConn, error) {
@@ -329,7 +333,7 @@ func (t *GrpcTransport) getPeer(addr raft.ServerAddress) (*grpc.ClientConn, erro
 }
 
 type snapshotReader struct {
-	stream raftv1.RaftTransport_InstallSnapshotServer
+	stream raftv1.RaftTransportService_InstallSnapshotServer
 	buf    []byte
 }
 
