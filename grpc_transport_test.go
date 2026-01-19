@@ -20,7 +20,7 @@ func createTestTransport(t *testing.T, addr string) (*GrpcTransport, *grpc.Serve
 
 	go func() {
 		if err := server.Serve(lis); err != nil {
-			// t.Logf("server stopped: %v", err)
+			t.Logf("server stopped: %v", err)
 		}
 	}()
 

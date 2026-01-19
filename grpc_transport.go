@@ -354,6 +354,7 @@ func (s *snapshotReader) Read(p []byte) (n int, err error) {
 		// Possibly end of stream or metadata only?
 		// Usually Recv returns EOF at end.
 		// If empty payload received, try again?
+		// no-op
 	}
 
 	s.buf = req.Data
@@ -409,9 +410,9 @@ func encodeAppendEntriesRequest(r *raft.AppendEntriesRequest) *raftv1.AppendEntr
 		logs[i] = encodeLog(l)
 	}
 	return &raftv1.AppendEntriesRequest{
-		Header:            encodeRPCHeader(r.RPCHeader),
-		Term:              r.Term,
-		Leader:            r.Leader,
+		Header: encodeRPCHeader(r.RPCHeader),
+		Term:   r.Term,
+		// Leader:            r.Leader, // Deprecated
 		PrevLogEntry:      r.PrevLogEntry,
 		PrevLogTerm:       r.PrevLogTerm,
 		Entries:           logs,
@@ -455,9 +456,9 @@ func decodeAppendEntriesResponse(src *raftv1.AppendEntriesResponse, dst *raft.Ap
 
 func encodeRequestVoteRequest(r *raft.RequestVoteRequest) *raftv1.RequestVoteRequest {
 	return &raftv1.RequestVoteRequest{
-		Header:             encodeRPCHeader(r.RPCHeader),
-		Term:               r.Term,
-		Candidate:          r.Candidate,
+		Header: encodeRPCHeader(r.RPCHeader),
+		Term:   r.Term,
+		// Candidate:          r.Candidate, // Deprecated
 		LastLogIndex:       r.LastLogIndex,
 		LastLogTerm:        r.LastLogTerm,
 		LeadershipTransfer: r.LeadershipTransfer,

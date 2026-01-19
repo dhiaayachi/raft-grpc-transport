@@ -146,7 +146,6 @@ func (t *MigrationTransport) InstallSnapshot(id raft.ServerID, target raft.Serve
 				// Just return original error as we can't fallback safely.
 				return err
 			}
-		} else {
 			// If not seekable, and we suspect data might have been read...
 			// We can't safely fallback for InstallSnapshot unless we know Primary didn't touch data.
 			// But we blindly try secondary? It might just send empty snapshot.
