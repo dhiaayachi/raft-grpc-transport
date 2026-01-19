@@ -349,12 +349,8 @@ func (s *snapshotReader) Read(p []byte) (n int, err error) {
 		return 0, err
 	}
 
-	// Assuming data is in 'Data' field
 	if len(req.Data) == 0 {
-		// Possibly end of stream or metadata only?
-		// Usually Recv returns EOF at end.
-		// If empty payload received, try again?
-		// no-op
+		return 0, io.EOF
 	}
 
 	s.buf = req.Data
