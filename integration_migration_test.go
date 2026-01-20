@@ -61,7 +61,7 @@ func runMigrationTest(t *testing.T, primaryUp bool) {
 
 		// Prepare InmemTransport (Secondary)
 		// We use NewInmemTransportWithAddr to match the gRPC address
-		_, inmem := raft.NewInmemTransportWithAddr(raft.ServerAddress(addrs[i]))
+		_, inmem := raft.NewInmemTransport(raft.ServerAddress(addrs[i]))
 		inmemTransports[i] = inmem
 
 		// Helper to close

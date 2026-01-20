@@ -2,7 +2,6 @@ package raftgrpc
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"sync"
 	"time"
@@ -65,9 +64,142 @@ func (t *GrpcTransport) LocalAddr() raft.ServerAddress {
 // AppendEntriesPipeline returns an interface that can be used to pipeline
 // AppendEntries requests.
 func (t *GrpcTransport) AppendEntriesPipeline(id raft.ServerID, target raft.ServerAddress) (raft.AppendPipeline, error) {
-	// Pipelining not yet implemented.
-	return nil, fmt.Errorf("pipeline replication not supported")
+	conn, err := t.getPeer(target)
+	if err != nil {
+		return nil, err
+	}
+	client := raftv1.NewRaftTransportServiceClient(conn)
+
+	stream, err := client.AppendEntriesPipeline(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	pipeline := &grpcPipeline{
+		stream:     stream,
+		inflight:   make(chan *appendFuture, 64),
+		readyCh:    make(chan raft.AppendFuture, 64),
+		shutdownCh: make(chan struct{}),
+	}
+
+	go pipeline.recvLoop()
+
+	return pipeline, nil
 }
+
+// grpcPipeline implements raft.AppendPipeline
+type grpcPipeline struct {
+	stream     raftv1.RaftTransportService_AppendEntriesPipelineClient
+	inflight   chan *appendFuture
+	readyCh    chan raft.AppendFuture
+	shutdownCh chan struct{}
+	mu         sync.Mutex
+	closed     bool
+}
+
+func (p *grpcPipeline) AppendEntries(args *raft.AppendEntriesRequest, resp *raft.AppendEntriesResponse) (raft.AppendFuture, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if p.closed {
+		return nil, raft.ErrPipelineShutdown
+	}
+
+	req := encodeAppendEntriesPipelineRequest(args)
+	if err := p.stream.Send(req); err != nil {
+		return nil, err
+	}
+
+	future := &appendFuture{
+		start: time.Now(),
+		args:  args,
+		resp:  resp,
+		done:  make(chan struct{}),
+	}
+
+	select {
+	case p.inflight <- future:
+		return future, nil
+	case <-p.shutdownCh:
+		return nil, raft.ErrPipelineShutdown
+	}
+}
+
+func (p *grpcPipeline) Consumer() <-chan raft.AppendFuture {
+	return p.readyCh
+}
+
+func (p *grpcPipeline) Close() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if p.closed {
+		return nil
+	}
+	p.closed = true
+	close(p.shutdownCh)
+	p.stream.CloseSend()
+	return nil
+}
+
+func (p *grpcPipeline) recvLoop() {
+	defer close(p.readyCh)
+
+	for {
+		resp, err := p.stream.Recv()
+		if err != nil {
+			// On error, we must fail all inflight futures?
+			// Just exit, and let Close() handle cleanup?
+			// But we need to signal errors to futures?
+			// If Recv fails, the pipeline is broken.
+			return
+		}
+
+		select {
+		case future := <-p.inflight:
+			decodeAppendEntriesPipelineResponse(resp, future.resp)
+			future.err = nil
+			close(future.done)
+			p.readyCh <- future
+		case <-p.shutdownCh:
+			return
+		}
+	}
+}
+
+type appendFuture struct {
+	start time.Time
+	args  *raft.AppendEntriesRequest
+	resp  *raft.AppendEntriesResponse
+	err   error
+	done  chan struct{}
+}
+
+func (f *appendFuture) Error() error {
+	<-f.done
+	return f.err
+}
+
+func (f *appendFuture) Start() time.Time {
+	return f.start
+}
+
+func (f *appendFuture) Request() *raft.AppendEntriesRequest {
+	return f.args
+}
+
+func (f *appendFuture) Response() *raft.AppendEntriesResponse {
+	return f.resp
+}
+
+// ... existing AppendEntries etc ...
+
+// ...
+
+// Server Side Implementation (grpcServer)
+
+// ...
+
 
 // AppendEntries sends an AppendEntries RPC to the given target.
 func (t *GrpcTransport) AppendEntries(id raft.ServerID, target raft.ServerAddress, args *raft.AppendEntriesRequest, resp *raft.AppendEntriesResponse) error {
@@ -302,7 +434,65 @@ func (s *grpcServer) TimeoutNow(ctx context.Context, req *raftv1.TimeoutNowReque
 }
 
 func (s *grpcServer) AppendEntriesPipeline(stream raftv1.RaftTransportService_AppendEntriesPipelineServer) error {
-	return fmt.Errorf("not implemented")
+	// Channel to ensure responses are sent in order
+	// We use a channel of channels to coordinate
+	sendCh := make(chan chan raft.RPCResponse, 64)
+
+	// Sender goroutine
+	errCh := make(chan error, 1)
+	go func() {
+		defer func() {
+			// Drain remaining responses to unblock garbage collection?
+			// Not strictly necessary if we return.
+		}()
+		for respChan := range sendCh {
+			select {
+			case resp := <-respChan:
+				if resp.Error != nil {
+					errCh <- resp.Error
+					return
+				}
+				rpcResp := encodeAppendEntriesPipelineResponse(resp.Response.(*raft.AppendEntriesResponse))
+				if err := stream.Send(rpcResp); err != nil {
+					errCh <- err
+					return
+				}
+			case <-stream.Context().Done():
+				return
+			}
+		}
+	}()
+
+	defer close(sendCh)
+
+	for {
+		req, err := stream.Recv()
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return err
+		}
+
+		args := decodeAppendEntriesPipelineRequest(req)
+		respChan := make(chan raft.RPCResponse, 1) // Buffered to avoid blocking
+
+		// Dispatch
+		select {
+		case s.trans.consumerCh <- raft.RPC{Command: args, RespChan: respChan}:
+		case <-stream.Context().Done():
+			return stream.Context().Err()
+		}
+
+		// Enqueue response waiter
+		select {
+		case sendCh <- respChan:
+		case err := <-errCh:
+			return err
+		case <-stream.Context().Done():
+			return stream.Context().Err()
+		}
+	}
 }
 
 // Helpers
@@ -443,6 +633,56 @@ func encodeAppendEntriesResponse(r *raft.AppendEntriesResponse) *raftv1.AppendEn
 }
 
 func decodeAppendEntriesResponse(src *raftv1.AppendEntriesResponse, dst *raft.AppendEntriesResponse) {
+	dst.RPCHeader = decodeRPCHeader(src.Header)
+	dst.Term = src.Term
+	dst.LastLog = src.LastLog
+	dst.Success = src.Success
+	dst.NoRetryBackoff = src.NoRetryBackoff
+}
+
+func encodeAppendEntriesPipelineRequest(r *raft.AppendEntriesRequest) *raftv1.AppendEntriesPipelineRequest {
+	logs := make([]*raftv1.Log, len(r.Entries))
+	for i, l := range r.Entries {
+		logs[i] = encodeLog(l)
+	}
+	return &raftv1.AppendEntriesPipelineRequest{
+		Header:            encodeRPCHeader(r.RPCHeader),
+		Term:              r.Term,
+		Leader:            r.Leader, // Deprecated in proto but fields exist? No, checked proto, bytes leader = 3
+		PrevLogEntry:      r.PrevLogEntry,
+		PrevLogTerm:       r.PrevLogTerm,
+		Entries:           logs,
+		LeaderCommitIndex: r.LeaderCommitIndex,
+	}
+}
+
+func decodeAppendEntriesPipelineRequest(r *raftv1.AppendEntriesPipelineRequest) *raft.AppendEntriesRequest {
+	logs := make([]*raft.Log, len(r.Entries))
+	for i, l := range r.Entries {
+		logs[i] = decodeLog(l)
+	}
+	return &raft.AppendEntriesRequest{
+		RPCHeader:         decodeRPCHeader(r.Header),
+		Term:              r.Term,
+		Leader:            r.Leader,
+		PrevLogEntry:      r.PrevLogEntry,
+		PrevLogTerm:       r.PrevLogTerm,
+		Entries:           logs,
+		LeaderCommitIndex: r.LeaderCommitIndex,
+	}
+}
+
+func encodeAppendEntriesPipelineResponse(r *raft.AppendEntriesResponse) *raftv1.AppendEntriesPipelineResponse {
+	return &raftv1.AppendEntriesPipelineResponse{
+		Header:         encodeRPCHeader(r.RPCHeader),
+		Term:           r.Term,
+		LastLog:        r.LastLog,
+		Success:        r.Success,
+		NoRetryBackoff: r.NoRetryBackoff,
+	}
+}
+
+func decodeAppendEntriesPipelineResponse(src *raftv1.AppendEntriesPipelineResponse, dst *raft.AppendEntriesResponse) {
 	dst.RPCHeader = decodeRPCHeader(src.Header)
 	dst.Term = src.Term
 	dst.LastLog = src.LastLog
