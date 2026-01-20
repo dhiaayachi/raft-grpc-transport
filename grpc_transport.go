@@ -148,6 +148,7 @@ func (p *grpcPipeline) recvLoop() {
 	for {
 		resp, err := p.stream.Recv()
 		if err != nil {
+			//TODO: Handle error
 			// On error, we must fail all inflight futures?
 			// Just exit, and let Close() handle cleanup?
 			// But we need to signal errors to futures?
@@ -199,7 +200,6 @@ func (f *appendFuture) Response() *raft.AppendEntriesResponse {
 // Server Side Implementation (grpcServer)
 
 // ...
-
 
 // AppendEntries sends an AppendEntries RPC to the given target.
 func (t *GrpcTransport) AppendEntries(id raft.ServerID, target raft.ServerAddress, args *raft.AppendEntriesRequest, resp *raft.AppendEntriesResponse) error {
@@ -442,6 +442,7 @@ func (s *grpcServer) AppendEntriesPipeline(stream raftv1.RaftTransportService_Ap
 	errCh := make(chan error, 1)
 	go func() {
 		defer func() {
+			//TODO: Handle error
 			// Drain remaining responses to unblock garbage collection?
 			// Not strictly necessary if we return.
 		}()
