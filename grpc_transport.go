@@ -12,13 +12,12 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+var _ raft.Transport = (*GrpcTransport)(nil)
+
 // GrpcTransport implements raft.Transport using gRPC.
 type GrpcTransport struct {
 	// localAddr is the address of the local node.
 	localAddr raft.ServerAddress
-
-	// ip is the public IP of the local node.
-	ip string
 
 	// consumerCh is the channel to consume RPC requests.
 	consumerCh chan raft.RPC
@@ -53,7 +52,6 @@ func WithTimeout(d time.Duration) TransportOption {
 func NewGrpcTransport(localAddr string, server *grpc.Server, opts ...TransportOption) (*GrpcTransport, error) {
 	t := &GrpcTransport{
 		localAddr:  raft.ServerAddress(localAddr),
-		ip:         localAddr,
 		consumerCh: make(chan raft.RPC),
 		peers:      make(map[raft.ServerAddress]*grpc.ClientConn),
 		timeout:    10 * time.Second, // Default timeout
