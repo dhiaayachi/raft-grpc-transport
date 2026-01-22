@@ -462,10 +462,6 @@ func (s *grpcServer) AppendEntriesPipeline(stream raftv1.RaftTransportService_Ap
 	// Sender goroutine
 	errCh := make(chan error, 1)
 	go func() {
-		defer func() {
-			// Drain remaining responses to unblock garbage collection?
-			// Not strictly necessary if we return.
-		}()
 		for respChan := range sendCh {
 			select {
 			case resp := <-respChan:
@@ -496,7 +492,7 @@ func (s *grpcServer) AppendEntriesPipeline(stream raftv1.RaftTransportService_Ap
 		}
 
 		args := decodeAppendEntriesPipelineRequest(req)
-		respChan := make(chan raft.RPCResponse, 1) // Buffered to avoid blocking
+		respChan := make(chan raft.RPCResponse, 1) // Buffered to avoid blocking raft when sending responses
 
 		// Dispatch
 		select {
