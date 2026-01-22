@@ -7,7 +7,8 @@ option go_package = "github.com/dhiaayachi/raft-grpc-transport/gen/go/proto/raft
 service RaftTransportService {
   // AppendEntriesPipeline opens a stream for pipelined AppendEntries requests.
   // This is optional optimization.
-  rpc AppendEntriesPipeline(stream AppendEntriesPipelineRequest) returns (stream AppendEntriesPipelineResponse);
+  rpc AppendEntriesPipeline(stream AppendEntriesPipelineRequest)
+      returns (stream AppendEntriesPipelineResponse);
 
   // AppendEntries performs a single AppendEntries RPC.
   rpc AppendEntries(AppendEntriesRequest) returns (AppendEntriesResponse);
@@ -17,8 +18,10 @@ service RaftTransportService {
 
   // InstallSnapshot performs an InstallSnapshot RPC.
   // The snapshot data is streamed to support large snapshots.
-  // The first message contains metadata, subsequent messages contain data chunks.
-  rpc InstallSnapshot(stream InstallSnapshotRequest) returns (InstallSnapshotResponse);
+  // The first message contains metadata, subsequent messages contain data
+  // chunks.
+  rpc InstallSnapshot(stream InstallSnapshotRequest)
+      returns (InstallSnapshotResponse);
 
   // TimeoutNow is used to start a leadership transfer.
   rpc TimeoutNow(TimeoutNowRequest) returns (TimeoutNowResponse);
@@ -41,7 +44,6 @@ message Log {
 message AppendEntriesRequest {
   RPCHeader header = 1;
   uint64 term = 2;
-  bytes leader = 3;
   uint64 prev_log_entry = 4;
   uint64 prev_log_term = 5;
   repeated Log entries = 6;
@@ -59,7 +61,6 @@ message AppendEntriesResponse {
 message AppendEntriesPipelineRequest {
   RPCHeader header = 1;
   uint64 term = 2;
-  bytes leader = 3;
   uint64 prev_log_entry = 4;
   uint64 prev_log_term = 5;
   repeated Log entries = 6;
@@ -93,17 +94,17 @@ message RequestVoteResponse {
 message InstallSnapshotRequest {
   RPCHeader header = 1;
   uint64 term = 2;
-  bytes leader = 3;
   uint64 last_log_index = 4;
   uint64 last_log_term = 5;
   bytes peers = 6;
   bytes configuration = 7;
   uint64 configuration_index = 8;
   int64 size = 9;
-  
-  // data chunk for streaming. 
-  // If this is set, metadata fields might be ignored or expected to be in first message.
-  bytes data = 10; 
+
+  // data chunk for streaming.
+  // If this is set, metadata fields might be ignored or expected to be in first
+  // message.
+  bytes data = 10;
 }
 
 message InstallSnapshotResponse {
@@ -112,10 +113,6 @@ message InstallSnapshotResponse {
   bool success = 3;
 }
 
-message TimeoutNowRequest {
-  RPCHeader header = 1;
-}
+message TimeoutNowRequest { RPCHeader header = 1; }
 
-message TimeoutNowResponse {
-  RPCHeader header = 1;
-}
+message TimeoutNowResponse { RPCHeader header = 1; }

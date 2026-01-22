@@ -155,8 +155,7 @@ func (p *grpcPipeline) Close() error {
 	}
 	p.closed = true
 	close(p.shutdownCh)
-	p.stream.CloseSend()
-	return nil
+	return p.stream.CloseSend()
 }
 
 func (p *grpcPipeline) recvLoop() {
@@ -629,7 +628,6 @@ func decodeAppendEntriesRequest(r *raftv1.AppendEntriesRequest) *raft.AppendEntr
 	return &raft.AppendEntriesRequest{
 		RPCHeader:         decodeRPCHeader(r.Header),
 		Term:              r.Term,
-		Leader:            r.Leader,
 		PrevLogEntry:      r.PrevLogEntry,
 		PrevLogTerm:       r.PrevLogTerm,
 		Entries:           logs,
@@ -663,7 +661,6 @@ func encodeAppendEntriesPipelineRequest(r *raft.AppendEntriesRequest) *raftv1.Ap
 	return &raftv1.AppendEntriesPipelineRequest{
 		Header:            encodeRPCHeader(r.RPCHeader),
 		Term:              r.Term,
-		Leader:            r.Leader, // Deprecated in proto but fields exist? No, checked proto, bytes leader = 3
 		PrevLogEntry:      r.PrevLogEntry,
 		PrevLogTerm:       r.PrevLogTerm,
 		Entries:           logs,
@@ -679,7 +676,6 @@ func decodeAppendEntriesPipelineRequest(r *raftv1.AppendEntriesPipelineRequest) 
 	return &raft.AppendEntriesRequest{
 		RPCHeader:         decodeRPCHeader(r.Header),
 		Term:              r.Term,
-		Leader:            r.Leader,
 		PrevLogEntry:      r.PrevLogEntry,
 		PrevLogTerm:       r.PrevLogTerm,
 		Entries:           logs,
@@ -747,7 +743,6 @@ func encodeInstallSnapshotRequest(r *raft.InstallSnapshotRequest) *raftv1.Instal
 	return &raftv1.InstallSnapshotRequest{
 		Header:             encodeRPCHeader(r.RPCHeader),
 		Term:               r.Term,
-		Leader:             r.Leader,
 		LastLogIndex:       r.LastLogIndex,
 		LastLogTerm:        r.LastLogTerm,
 		Peers:              r.Peers,
@@ -761,7 +756,6 @@ func decodeInstallSnapshotRequest(r *raftv1.InstallSnapshotRequest) *raft.Instal
 	return &raft.InstallSnapshotRequest{
 		RPCHeader:          decodeRPCHeader(r.Header),
 		Term:               r.Term,
-		Leader:             r.Leader,
 		LastLogIndex:       r.LastLogIndex,
 		LastLogTerm:        r.LastLogTerm,
 		Peers:              r.Peers,

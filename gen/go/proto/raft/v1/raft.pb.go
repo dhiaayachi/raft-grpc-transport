@@ -161,7 +161,6 @@ type AppendEntriesRequest struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	Header            *RPCHeader             `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
 	Term              uint64                 `protobuf:"varint,2,opt,name=term,proto3" json:"term,omitempty"`
-	Leader            []byte                 `protobuf:"bytes,3,opt,name=leader,proto3" json:"leader,omitempty"`
 	PrevLogEntry      uint64                 `protobuf:"varint,4,opt,name=prev_log_entry,json=prevLogEntry,proto3" json:"prev_log_entry,omitempty"`
 	PrevLogTerm       uint64                 `protobuf:"varint,5,opt,name=prev_log_term,json=prevLogTerm,proto3" json:"prev_log_term,omitempty"`
 	Entries           []*Log                 `protobuf:"bytes,6,rep,name=entries,proto3" json:"entries,omitempty"`
@@ -212,13 +211,6 @@ func (x *AppendEntriesRequest) GetTerm() uint64 {
 		return x.Term
 	}
 	return 0
-}
-
-func (x *AppendEntriesRequest) GetLeader() []byte {
-	if x != nil {
-		return x.Leader
-	}
-	return nil
 }
 
 func (x *AppendEntriesRequest) GetPrevLogEntry() uint64 {
@@ -329,7 +321,6 @@ type AppendEntriesPipelineRequest struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	Header            *RPCHeader             `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
 	Term              uint64                 `protobuf:"varint,2,opt,name=term,proto3" json:"term,omitempty"`
-	Leader            []byte                 `protobuf:"bytes,3,opt,name=leader,proto3" json:"leader,omitempty"`
 	PrevLogEntry      uint64                 `protobuf:"varint,4,opt,name=prev_log_entry,json=prevLogEntry,proto3" json:"prev_log_entry,omitempty"`
 	PrevLogTerm       uint64                 `protobuf:"varint,5,opt,name=prev_log_term,json=prevLogTerm,proto3" json:"prev_log_term,omitempty"`
 	Entries           []*Log                 `protobuf:"bytes,6,rep,name=entries,proto3" json:"entries,omitempty"`
@@ -380,13 +371,6 @@ func (x *AppendEntriesPipelineRequest) GetTerm() uint64 {
 		return x.Term
 	}
 	return 0
-}
-
-func (x *AppendEntriesPipelineRequest) GetLeader() []byte {
-	if x != nil {
-		return x.Leader
-	}
-	return nil
 }
 
 func (x *AppendEntriesPipelineRequest) GetPrevLogEntry() uint64 {
@@ -649,7 +633,6 @@ type InstallSnapshotRequest struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	Header             *RPCHeader             `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
 	Term               uint64                 `protobuf:"varint,2,opt,name=term,proto3" json:"term,omitempty"`
-	Leader             []byte                 `protobuf:"bytes,3,opt,name=leader,proto3" json:"leader,omitempty"`
 	LastLogIndex       uint64                 `protobuf:"varint,4,opt,name=last_log_index,json=lastLogIndex,proto3" json:"last_log_index,omitempty"`
 	LastLogTerm        uint64                 `protobuf:"varint,5,opt,name=last_log_term,json=lastLogTerm,proto3" json:"last_log_term,omitempty"`
 	Peers              []byte                 `protobuf:"bytes,6,opt,name=peers,proto3" json:"peers,omitempty"`
@@ -657,7 +640,8 @@ type InstallSnapshotRequest struct {
 	ConfigurationIndex uint64                 `protobuf:"varint,8,opt,name=configuration_index,json=configurationIndex,proto3" json:"configuration_index,omitempty"`
 	Size               int64                  `protobuf:"varint,9,opt,name=size,proto3" json:"size,omitempty"`
 	// data chunk for streaming.
-	// If this is set, metadata fields might be ignored or expected to be in first message.
+	// If this is set, metadata fields might be ignored or expected to be in first
+	// message.
 	Data          []byte `protobuf:"bytes,10,opt,name=data,proto3" json:"data,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -705,13 +689,6 @@ func (x *InstallSnapshotRequest) GetTerm() uint64 {
 		return x.Term
 	}
 	return 0
-}
-
-func (x *InstallSnapshotRequest) GetLeader() []byte {
-	if x != nil {
-		return x.Leader
-	}
-	return nil
 }
 
 func (x *InstallSnapshotRequest) GetLastLogIndex() uint64 {
@@ -927,11 +904,10 @@ const file_proto_raft_v1_raft_proto_rawDesc = "" +
 	"\x04data\x18\x04 \x01(\fR\x04data\x12\x1e\n" +
 	"\n" +
 	"extensions\x18\x05 \x01(\fR\n" +
-	"extensions\"\x9c\x02\n" +
+	"extensions\"\x84\x02\n" +
 	"\x14AppendEntriesRequest\x120\n" +
 	"\x06header\x18\x01 \x01(\v2\x18.proto.raft.v1.RPCHeaderR\x06header\x12\x12\n" +
-	"\x04term\x18\x02 \x01(\x04R\x04term\x12\x16\n" +
-	"\x06leader\x18\x03 \x01(\fR\x06leader\x12$\n" +
+	"\x04term\x18\x02 \x01(\x04R\x04term\x12$\n" +
 	"\x0eprev_log_entry\x18\x04 \x01(\x04R\fprevLogEntry\x12\"\n" +
 	"\rprev_log_term\x18\x05 \x01(\x04R\vprevLogTerm\x12,\n" +
 	"\aentries\x18\x06 \x03(\v2\x12.proto.raft.v1.LogR\aentries\x12.\n" +
@@ -941,11 +917,10 @@ const file_proto_raft_v1_raft_proto_rawDesc = "" +
 	"\x04term\x18\x02 \x01(\x04R\x04term\x12\x19\n" +
 	"\blast_log\x18\x03 \x01(\x04R\alastLog\x12\x18\n" +
 	"\asuccess\x18\x04 \x01(\bR\asuccess\x12(\n" +
-	"\x10no_retry_backoff\x18\x05 \x01(\bR\x0enoRetryBackoff\"\xa4\x02\n" +
+	"\x10no_retry_backoff\x18\x05 \x01(\bR\x0enoRetryBackoff\"\x8c\x02\n" +
 	"\x1cAppendEntriesPipelineRequest\x120\n" +
 	"\x06header\x18\x01 \x01(\v2\x18.proto.raft.v1.RPCHeaderR\x06header\x12\x12\n" +
-	"\x04term\x18\x02 \x01(\x04R\x04term\x12\x16\n" +
-	"\x06leader\x18\x03 \x01(\fR\x06leader\x12$\n" +
+	"\x04term\x18\x02 \x01(\x04R\x04term\x12$\n" +
 	"\x0eprev_log_entry\x18\x04 \x01(\x04R\fprevLogEntry\x12\"\n" +
 	"\rprev_log_term\x18\x05 \x01(\x04R\vprevLogTerm\x12,\n" +
 	"\aentries\x18\x06 \x03(\v2\x12.proto.raft.v1.LogR\aentries\x12.\n" +
@@ -967,11 +942,10 @@ const file_proto_raft_v1_raft_proto_rawDesc = "" +
 	"\x06header\x18\x01 \x01(\v2\x18.proto.raft.v1.RPCHeaderR\x06header\x12\x12\n" +
 	"\x04term\x18\x02 \x01(\x04R\x04term\x12\x14\n" +
 	"\x05peers\x18\x03 \x01(\fR\x05peers\x12\x18\n" +
-	"\agranted\x18\x04 \x01(\bR\agranted\"\xd5\x02\n" +
+	"\agranted\x18\x04 \x01(\bR\agranted\"\xbd\x02\n" +
 	"\x16InstallSnapshotRequest\x120\n" +
 	"\x06header\x18\x01 \x01(\v2\x18.proto.raft.v1.RPCHeaderR\x06header\x12\x12\n" +
-	"\x04term\x18\x02 \x01(\x04R\x04term\x12\x16\n" +
-	"\x06leader\x18\x03 \x01(\fR\x06leader\x12$\n" +
+	"\x04term\x18\x02 \x01(\x04R\x04term\x12$\n" +
 	"\x0elast_log_index\x18\x04 \x01(\x04R\flastLogIndex\x12\"\n" +
 	"\rlast_log_term\x18\x05 \x01(\x04R\vlastLogTerm\x12\x14\n" +
 	"\x05peers\x18\x06 \x01(\fR\x05peers\x12$\n" +
