@@ -24,8 +24,12 @@ type GrpcTransport struct {
 	consumerCh chan raft.RPC
 
 	// peers is a map of peer address to gRPC client connection.
-	peers      map[raft.ServerAddress]*grpc.ClientConn
+	peers map[raft.ServerAddress]*grpc.ClientConn
+	// peersMutex protects the peers map.
 	peersMutex sync.RWMutex
+
+	// timeout is the timeout for RPCs.
+	timeout time.Duration
 }
 
 // grpcServer implements the generated RaftTransportServiceServer interface.
@@ -34,14 +38,29 @@ type grpcServer struct {
 	trans *GrpcTransport
 }
 
+// TransportOption is a functional option for GrpcTransport.
+type TransportOption func(*GrpcTransport)
+
+// WithTimeout sets the timeout for RPCs.
+func WithTimeout(d time.Duration) TransportOption {
+	return func(t *GrpcTransport) {
+		t.timeout = d
+	}
+}
+
 // NewGrpcTransport creates a new GrpcTransport and registers it with the given gRPC server.
 // The user is responsible for starting and serving the gRPC server.
-func NewGrpcTransport(localAddr string, server *grpc.Server) (*GrpcTransport, error) {
+func NewGrpcTransport(localAddr string, server *grpc.Server, opts ...TransportOption) (*GrpcTransport, error) {
 	t := &GrpcTransport{
 		localAddr:  raft.ServerAddress(localAddr),
 		ip:         localAddr,
 		consumerCh: make(chan raft.RPC),
 		peers:      make(map[raft.ServerAddress]*grpc.ClientConn),
+		timeout:    10 * time.Second, // Default timeout
+	}
+
+	for _, opt := range opts {
+		opt(t)
 	}
 
 	// Register the server implementation
@@ -148,11 +167,13 @@ func (p *grpcPipeline) recvLoop() {
 	for {
 		resp, err := p.stream.Recv()
 		if err != nil {
-			//TODO: Handle error
-			// On error, we must fail all inflight futures?
-			// Just exit, and let Close() handle cleanup?
-			// But we need to signal errors to futures?
-			// If Recv fails, the pipeline is broken.
+			// Close all inflight futures and error them
+			// as this is the most we can do
+			for future := range p.inflight {
+				future.err = err
+				close(future.done)
+				p.readyCh <- future
+			}
 			return
 		}
 
@@ -211,7 +232,7 @@ func (t *GrpcTransport) AppendEntries(id raft.ServerID, target raft.ServerAddres
 
 	req := encodeAppendEntriesRequest(args)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second) // TODO: Make configurable
+	ctx, cancel := context.WithTimeout(context.Background(), t.timeout)
 	defer cancel()
 
 	rpcResp, err := client.AppendEntries(ctx, req)
@@ -233,7 +254,7 @@ func (t *GrpcTransport) RequestVote(id raft.ServerID, target raft.ServerAddress,
 
 	req := encodeRequestVoteRequest(args)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), t.timeout)
 	defer cancel()
 
 	rpcResp, err := client.RequestVote(ctx, req)
@@ -320,7 +341,7 @@ func (t *GrpcTransport) TimeoutNow(id raft.ServerID, target raft.ServerAddress, 
 
 	req := encodeTimeoutNowRequest(args)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), t.timeout)
 	defer cancel()
 
 	rpcResp, err := client.TimeoutNow(ctx, req)
@@ -442,7 +463,6 @@ func (s *grpcServer) AppendEntriesPipeline(stream raftv1.RaftTransportService_Ap
 	errCh := make(chan error, 1)
 	go func() {
 		defer func() {
-			//TODO: Handle error
 			// Drain remaining responses to unblock garbage collection?
 			// Not strictly necessary if we return.
 		}()
