@@ -9,6 +9,7 @@ This library allows you to use gRPC for communication between Raft nodes, levera
 - **Standard gRPC**: Uses Protocol Buffers for efficient serialization (via `buf`).
 - **Streamed Snapshots**: Supports streaming large snapshots over gRPC.
 - **Connection Management**: Lazily establishes and maintains persistent connections to peers.
+- **Connection Pooling**: Uses a configurable round-robin pool of connections (default 3) for high concurrency.
 - **Drop-in Replacement**: Implements the standard `raft.Transport` interface.
 
 ## Installation
