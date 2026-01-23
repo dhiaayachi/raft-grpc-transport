@@ -25,6 +25,9 @@ service RaftTransportService {
 
   // TimeoutNow is used to start a leadership transfer.
   rpc TimeoutNow(TimeoutNowRequest) returns (TimeoutNowResponse);
+
+  // RequestPreVote performs a RequestPreVote RPC.
+  rpc RequestPreVote(RequestPreVoteRequest) returns (RequestPreVoteResponse);
 }
 
 message RPCHeader {
@@ -44,10 +47,10 @@ message Log {
 message AppendEntriesRequest {
   RPCHeader header = 1;
   uint64 term = 2;
-  uint64 prev_log_entry = 4;
-  uint64 prev_log_term = 5;
-  repeated Log entries = 6;
-  uint64 leader_commit_index = 7;
+  uint64 prev_log_entry = 3;
+  uint64 prev_log_term = 4;
+  repeated Log entries = 5;
+  uint64 leader_commit_index = 6;
 }
 
 message AppendEntriesResponse {
@@ -61,10 +64,10 @@ message AppendEntriesResponse {
 message AppendEntriesPipelineRequest {
   RPCHeader header = 1;
   uint64 term = 2;
-  uint64 prev_log_entry = 4;
-  uint64 prev_log_term = 5;
-  repeated Log entries = 6;
-  uint64 leader_commit_index = 7;
+  uint64 prev_log_entry = 3;
+  uint64 prev_log_term = 4;
+  repeated Log entries = 5;
+  uint64 leader_commit_index = 6;
 }
 
 message AppendEntriesPipelineResponse {
@@ -94,17 +97,17 @@ message RequestVoteResponse {
 message InstallSnapshotRequest {
   RPCHeader header = 1;
   uint64 term = 2;
-  uint64 last_log_index = 4;
-  uint64 last_log_term = 5;
-  bytes peers = 6;
-  bytes configuration = 7;
-  uint64 configuration_index = 8;
-  int64 size = 9;
+  uint64 last_log_index = 3;
+  uint64 last_log_term = 4;
+  bytes peers = 5;
+  bytes configuration = 6;
+  uint64 configuration_index = 7;
+  int64 size = 8;
 
   // data chunk for streaming.
   // If this is set, metadata fields might be ignored or expected to be in first
   // message.
-  bytes data = 10;
+  bytes data = 9;
 }
 
 message InstallSnapshotResponse {
@@ -114,5 +117,18 @@ message InstallSnapshotResponse {
 }
 
 message TimeoutNowRequest { RPCHeader header = 1; }
+
+message RequestPreVoteRequest {
+  RPCHeader header = 1;
+  uint64 term = 2;
+  uint64 last_log_index = 3;
+  uint64 last_log_term = 4;
+}
+
+message RequestPreVoteResponse {
+  RPCHeader header = 1;
+  uint64 term = 2;
+  bool granted = 3;
+}
 
 message TimeoutNowResponse { RPCHeader header = 1; }

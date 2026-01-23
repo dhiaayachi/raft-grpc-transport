@@ -844,6 +844,134 @@ func (x *TimeoutNowRequest) GetHeader() *RPCHeader {
 	return nil
 }
 
+type RequestPreVoteRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Header        *RPCHeader             `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	Term          uint64                 `protobuf:"varint,2,opt,name=term,proto3" json:"term,omitempty"`
+	LastLogIndex  uint64                 `protobuf:"varint,4,opt,name=last_log_index,json=lastLogIndex,proto3" json:"last_log_index,omitempty"`
+	LastLogTerm   uint64                 `protobuf:"varint,5,opt,name=last_log_term,json=lastLogTerm,proto3" json:"last_log_term,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RequestPreVoteRequest) Reset() {
+	*x = RequestPreVoteRequest{}
+	mi := &file_proto_raft_v1_raft_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RequestPreVoteRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RequestPreVoteRequest) ProtoMessage() {}
+
+func (x *RequestPreVoteRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_raft_v1_raft_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RequestPreVoteRequest.ProtoReflect.Descriptor instead.
+func (*RequestPreVoteRequest) Descriptor() ([]byte, []int) {
+	return file_proto_raft_v1_raft_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *RequestPreVoteRequest) GetHeader() *RPCHeader {
+	if x != nil {
+		return x.Header
+	}
+	return nil
+}
+
+func (x *RequestPreVoteRequest) GetTerm() uint64 {
+	if x != nil {
+		return x.Term
+	}
+	return 0
+}
+
+func (x *RequestPreVoteRequest) GetLastLogIndex() uint64 {
+	if x != nil {
+		return x.LastLogIndex
+	}
+	return 0
+}
+
+func (x *RequestPreVoteRequest) GetLastLogTerm() uint64 {
+	if x != nil {
+		return x.LastLogTerm
+	}
+	return 0
+}
+
+type RequestPreVoteResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Header        *RPCHeader             `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	Term          uint64                 `protobuf:"varint,2,opt,name=term,proto3" json:"term,omitempty"`
+	Granted       bool                   `protobuf:"varint,4,opt,name=granted,proto3" json:"granted,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RequestPreVoteResponse) Reset() {
+	*x = RequestPreVoteResponse{}
+	mi := &file_proto_raft_v1_raft_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RequestPreVoteResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RequestPreVoteResponse) ProtoMessage() {}
+
+func (x *RequestPreVoteResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_raft_v1_raft_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RequestPreVoteResponse.ProtoReflect.Descriptor instead.
+func (*RequestPreVoteResponse) Descriptor() ([]byte, []int) {
+	return file_proto_raft_v1_raft_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *RequestPreVoteResponse) GetHeader() *RPCHeader {
+	if x != nil {
+		return x.Header
+	}
+	return nil
+}
+
+func (x *RequestPreVoteResponse) GetTerm() uint64 {
+	if x != nil {
+		return x.Term
+	}
+	return 0
+}
+
+func (x *RequestPreVoteResponse) GetGranted() bool {
+	if x != nil {
+		return x.Granted
+	}
+	return false
+}
+
 type TimeoutNowResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Header        *RPCHeader             `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
@@ -853,7 +981,7 @@ type TimeoutNowResponse struct {
 
 func (x *TimeoutNowResponse) Reset() {
 	*x = TimeoutNowResponse{}
-	mi := &file_proto_raft_v1_raft_proto_msgTypes[11]
+	mi := &file_proto_raft_v1_raft_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -865,7 +993,7 @@ func (x *TimeoutNowResponse) String() string {
 func (*TimeoutNowResponse) ProtoMessage() {}
 
 func (x *TimeoutNowResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_raft_v1_raft_proto_msgTypes[11]
+	mi := &file_proto_raft_v1_raft_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -878,7 +1006,7 @@ func (x *TimeoutNowResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TimeoutNowResponse.ProtoReflect.Descriptor instead.
 func (*TimeoutNowResponse) Descriptor() ([]byte, []int) {
-	return file_proto_raft_v1_raft_proto_rawDescGZIP(), []int{11}
+	return file_proto_raft_v1_raft_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *TimeoutNowResponse) GetHeader() *RPCHeader {
@@ -959,16 +1087,26 @@ const file_proto_raft_v1_raft_proto_rawDesc = "" +
 	"\x04term\x18\x02 \x01(\x04R\x04term\x12\x18\n" +
 	"\asuccess\x18\x03 \x01(\bR\asuccess\"E\n" +
 	"\x11TimeoutNowRequest\x120\n" +
-	"\x06header\x18\x01 \x01(\v2\x18.proto.raft.v1.RPCHeaderR\x06header\"F\n" +
+	"\x06header\x18\x01 \x01(\v2\x18.proto.raft.v1.RPCHeaderR\x06header\"\xa7\x01\n" +
+	"\x15RequestPreVoteRequest\x120\n" +
+	"\x06header\x18\x01 \x01(\v2\x18.proto.raft.v1.RPCHeaderR\x06header\x12\x12\n" +
+	"\x04term\x18\x02 \x01(\x04R\x04term\x12$\n" +
+	"\x0elast_log_index\x18\x04 \x01(\x04R\flastLogIndex\x12\"\n" +
+	"\rlast_log_term\x18\x05 \x01(\x04R\vlastLogTerm\"x\n" +
+	"\x16RequestPreVoteResponse\x120\n" +
+	"\x06header\x18\x01 \x01(\v2\x18.proto.raft.v1.RPCHeaderR\x06header\x12\x12\n" +
+	"\x04term\x18\x02 \x01(\x04R\x04term\x12\x18\n" +
+	"\agranted\x18\x04 \x01(\bR\agranted\"F\n" +
 	"\x12TimeoutNowResponse\x120\n" +
-	"\x06header\x18\x01 \x01(\v2\x18.proto.raft.v1.RPCHeaderR\x06header2\xf7\x03\n" +
+	"\x06header\x18\x01 \x01(\v2\x18.proto.raft.v1.RPCHeaderR\x06header2\xd6\x04\n" +
 	"\x14RaftTransportService\x12v\n" +
 	"\x15AppendEntriesPipeline\x12+.proto.raft.v1.AppendEntriesPipelineRequest\x1a,.proto.raft.v1.AppendEntriesPipelineResponse(\x010\x01\x12Z\n" +
 	"\rAppendEntries\x12#.proto.raft.v1.AppendEntriesRequest\x1a$.proto.raft.v1.AppendEntriesResponse\x12T\n" +
 	"\vRequestVote\x12!.proto.raft.v1.RequestVoteRequest\x1a\".proto.raft.v1.RequestVoteResponse\x12b\n" +
 	"\x0fInstallSnapshot\x12%.proto.raft.v1.InstallSnapshotRequest\x1a&.proto.raft.v1.InstallSnapshotResponse(\x01\x12Q\n" +
 	"\n" +
-	"TimeoutNow\x12 .proto.raft.v1.TimeoutNowRequest\x1a!.proto.raft.v1.TimeoutNowResponseB\xbb\x01\n" +
+	"TimeoutNow\x12 .proto.raft.v1.TimeoutNowRequest\x1a!.proto.raft.v1.TimeoutNowResponse\x12]\n" +
+	"\x0eRequestPreVote\x12$.proto.raft.v1.RequestPreVoteRequest\x1a%.proto.raft.v1.RequestPreVoteResponseB\xbb\x01\n" +
 	"\x11com.proto.raft.v1B\tRaftProtoP\x01ZEgithub.com/dhiaayachi/raft-grpc-transport/gen/go/proto/raft/v1;raftv1\xa2\x02\x03PRX\xaa\x02\rProto.Raft.V1\xca\x02\rProto\\Raft\\V1\xe2\x02\x19Proto\\Raft\\V1\\GPBMetadata\xea\x02\x0fProto::Raft::V1b\x06proto3"
 
 var (
@@ -983,7 +1121,7 @@ func file_proto_raft_v1_raft_proto_rawDescGZIP() []byte {
 	return file_proto_raft_v1_raft_proto_rawDescData
 }
 
-var file_proto_raft_v1_raft_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_proto_raft_v1_raft_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_proto_raft_v1_raft_proto_goTypes = []any{
 	(*RPCHeader)(nil),                     // 0: proto.raft.v1.RPCHeader
 	(*Log)(nil),                           // 1: proto.raft.v1.Log
@@ -996,7 +1134,9 @@ var file_proto_raft_v1_raft_proto_goTypes = []any{
 	(*InstallSnapshotRequest)(nil),        // 8: proto.raft.v1.InstallSnapshotRequest
 	(*InstallSnapshotResponse)(nil),       // 9: proto.raft.v1.InstallSnapshotResponse
 	(*TimeoutNowRequest)(nil),             // 10: proto.raft.v1.TimeoutNowRequest
-	(*TimeoutNowResponse)(nil),            // 11: proto.raft.v1.TimeoutNowResponse
+	(*RequestPreVoteRequest)(nil),         // 11: proto.raft.v1.RequestPreVoteRequest
+	(*RequestPreVoteResponse)(nil),        // 12: proto.raft.v1.RequestPreVoteResponse
+	(*TimeoutNowResponse)(nil),            // 13: proto.raft.v1.TimeoutNowResponse
 }
 var file_proto_raft_v1_raft_proto_depIdxs = []int32{
 	0,  // 0: proto.raft.v1.AppendEntriesRequest.header:type_name -> proto.raft.v1.RPCHeader
@@ -1010,22 +1150,26 @@ var file_proto_raft_v1_raft_proto_depIdxs = []int32{
 	0,  // 8: proto.raft.v1.InstallSnapshotRequest.header:type_name -> proto.raft.v1.RPCHeader
 	0,  // 9: proto.raft.v1.InstallSnapshotResponse.header:type_name -> proto.raft.v1.RPCHeader
 	0,  // 10: proto.raft.v1.TimeoutNowRequest.header:type_name -> proto.raft.v1.RPCHeader
-	0,  // 11: proto.raft.v1.TimeoutNowResponse.header:type_name -> proto.raft.v1.RPCHeader
-	4,  // 12: proto.raft.v1.RaftTransportService.AppendEntriesPipeline:input_type -> proto.raft.v1.AppendEntriesPipelineRequest
-	2,  // 13: proto.raft.v1.RaftTransportService.AppendEntries:input_type -> proto.raft.v1.AppendEntriesRequest
-	6,  // 14: proto.raft.v1.RaftTransportService.RequestVote:input_type -> proto.raft.v1.RequestVoteRequest
-	8,  // 15: proto.raft.v1.RaftTransportService.InstallSnapshot:input_type -> proto.raft.v1.InstallSnapshotRequest
-	10, // 16: proto.raft.v1.RaftTransportService.TimeoutNow:input_type -> proto.raft.v1.TimeoutNowRequest
-	5,  // 17: proto.raft.v1.RaftTransportService.AppendEntriesPipeline:output_type -> proto.raft.v1.AppendEntriesPipelineResponse
-	3,  // 18: proto.raft.v1.RaftTransportService.AppendEntries:output_type -> proto.raft.v1.AppendEntriesResponse
-	7,  // 19: proto.raft.v1.RaftTransportService.RequestVote:output_type -> proto.raft.v1.RequestVoteResponse
-	9,  // 20: proto.raft.v1.RaftTransportService.InstallSnapshot:output_type -> proto.raft.v1.InstallSnapshotResponse
-	11, // 21: proto.raft.v1.RaftTransportService.TimeoutNow:output_type -> proto.raft.v1.TimeoutNowResponse
-	17, // [17:22] is the sub-list for method output_type
-	12, // [12:17] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	0,  // 11: proto.raft.v1.RequestPreVoteRequest.header:type_name -> proto.raft.v1.RPCHeader
+	0,  // 12: proto.raft.v1.RequestPreVoteResponse.header:type_name -> proto.raft.v1.RPCHeader
+	0,  // 13: proto.raft.v1.TimeoutNowResponse.header:type_name -> proto.raft.v1.RPCHeader
+	4,  // 14: proto.raft.v1.RaftTransportService.AppendEntriesPipeline:input_type -> proto.raft.v1.AppendEntriesPipelineRequest
+	2,  // 15: proto.raft.v1.RaftTransportService.AppendEntries:input_type -> proto.raft.v1.AppendEntriesRequest
+	6,  // 16: proto.raft.v1.RaftTransportService.RequestVote:input_type -> proto.raft.v1.RequestVoteRequest
+	8,  // 17: proto.raft.v1.RaftTransportService.InstallSnapshot:input_type -> proto.raft.v1.InstallSnapshotRequest
+	10, // 18: proto.raft.v1.RaftTransportService.TimeoutNow:input_type -> proto.raft.v1.TimeoutNowRequest
+	11, // 19: proto.raft.v1.RaftTransportService.RequestPreVote:input_type -> proto.raft.v1.RequestPreVoteRequest
+	5,  // 20: proto.raft.v1.RaftTransportService.AppendEntriesPipeline:output_type -> proto.raft.v1.AppendEntriesPipelineResponse
+	3,  // 21: proto.raft.v1.RaftTransportService.AppendEntries:output_type -> proto.raft.v1.AppendEntriesResponse
+	7,  // 22: proto.raft.v1.RaftTransportService.RequestVote:output_type -> proto.raft.v1.RequestVoteResponse
+	9,  // 23: proto.raft.v1.RaftTransportService.InstallSnapshot:output_type -> proto.raft.v1.InstallSnapshotResponse
+	13, // 24: proto.raft.v1.RaftTransportService.TimeoutNow:output_type -> proto.raft.v1.TimeoutNowResponse
+	12, // 25: proto.raft.v1.RaftTransportService.RequestPreVote:output_type -> proto.raft.v1.RequestPreVoteResponse
+	20, // [20:26] is the sub-list for method output_type
+	14, // [14:20] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_proto_raft_v1_raft_proto_init() }
@@ -1039,7 +1183,7 @@ func file_proto_raft_v1_raft_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_raft_v1_raft_proto_rawDesc), len(file_proto_raft_v1_raft_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
