@@ -81,10 +81,9 @@ message AppendEntriesPipelineResponse {
 message RequestVoteRequest {
   RPCHeader header = 1;
   uint64 term = 2;
-  bytes candidate = 3;
-  uint64 last_log_index = 4;
-  uint64 last_log_term = 5;
-  bool leadership_transfer = 6;
+  uint64 last_log_index = 3;
+  uint64 last_log_term = 4;
+  bool leadership_transfer = 5;
 }
 
 message RequestVoteResponse {

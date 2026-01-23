@@ -744,9 +744,8 @@ func decodeAppendEntriesPipelineResponse(src *raftv1.AppendEntriesPipelineRespon
 
 func encodeRequestVoteRequest(r *raft.RequestVoteRequest) *raftv1.RequestVoteRequest {
 	return &raftv1.RequestVoteRequest{
-		Header: encodeRPCHeader(r.RPCHeader),
-		Term:   r.Term,
-		// Candidate:          r.Candidate, // Deprecated
+		Header:             encodeRPCHeader(r.RPCHeader),
+		Term:               r.Term,
 		LastLogIndex:       r.LastLogIndex,
 		LastLogTerm:        r.LastLogTerm,
 		LeadershipTransfer: r.LeadershipTransfer,
