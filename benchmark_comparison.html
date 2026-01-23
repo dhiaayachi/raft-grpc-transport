@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Benchmark Comparison</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .chart-container { width: 800px; margin: 20px auto; }
+    </style>
+</head>
+<body>
+    <h1>Transport Benchmark Comparison</h1>
+    <div class="chart-container">
+        <canvas id="latencyChart"></canvas>
+    </div>
+    <div class="chart-container">
+        <canvas id="throughputChart"></canvas>
+    </div>
+
+    <script>
+        const ctxLatency = document.getElementById('latencyChart').getContext('2d');
+        const ctxThroughput = document.getElementById('throughputChart').getContext('2d');
+
+        const latencyData = {
+            labels: ['Grpc', 'Network'],
+            datasets: [{
+                label: 'AppendEntries Latency (ns/op) - Lower is better',
+                data: [50385, 25171],
+                backgroundColor: ['rgba(54, 162, 235, 0.5)', 'rgba(255, 99, 132, 0.5)'],
+                borderColor: ['rgba(54, 162, 235, 1)', 'rgba(255, 99, 132, 1)'],
+                borderWidth: 1
+            }]
+        };
+
+        // Estimating throughput as 1e9 / nsPerOp * (1KB payload) -> MB/s roughly, or just Ops/sec
+        // Or actually, testing.BenchmarkResult doesn't give throughput direct unless SetBytes called.
+        // We didn't call SetBytes. Let's use Ops/Sec for throughput comparison for Pipeline.
+        const throughputData = {
+            labels: ['Grpc', 'Network'],
+            datasets: [{
+                label: 'Pipeline Throughput (Ops/sec) - Higher is better',
+                data: [227680.920531, 58316.495272],
+                backgroundColor: ['rgba(54, 162, 235, 0.5)', 'rgba(255, 99, 132, 0.5)'],
+                borderColor: ['rgba(54, 162, 235, 1)', 'rgba(255, 99, 132, 1)'],
+                borderWidth: 1
+            }]
+        };
+
+        new Chart(ctxLatency, {
+            type: 'bar',
+            data: latencyData,
+            options: { scales: { y: { beginAtZero: true } } }
+        });
+
+        new Chart(ctxThroughput, {
+            type: 'bar',
+            data: throughputData,
+            options: { scales: { y: { beginAtZero: true } } }
+        });
+    </script>
+</body>
+</html>
