@@ -756,7 +756,6 @@ func decodeRequestVoteRequest(r *raftv1.RequestVoteRequest) *raft.RequestVoteReq
 	return &raft.RequestVoteRequest{
 		RPCHeader:          decodeRPCHeader(r.Header),
 		Term:               r.Term,
-		Candidate:          r.Candidate,
 		LastLogIndex:       r.LastLogIndex,
 		LastLogTerm:        r.LastLogTerm,
 		LeadershipTransfer: r.LeadershipTransfer,
