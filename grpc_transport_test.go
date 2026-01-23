@@ -206,3 +206,55 @@ func TestTransport_AppendEntriesPipeline(t *testing.T) {
 		}
 	}
 }
+
+func TestTransport_RequestPreVote(t *testing.T) {
+	trans1, s1, l1 := createTestTransport(t, "127.0.0.1:0")
+	defer trans1.Close()
+	defer s1.Stop()
+	defer l1.Close()
+
+	trans2, s2, l2 := createTestTransport(t, "127.0.0.1:0")
+	defer trans2.Close()
+	defer s2.Stop()
+	defer l2.Close()
+
+	addr2 := raft.ServerAddress(l2.Addr().String())
+
+	// Handle RPC on trans2
+	go func() {
+		select {
+		case rpc := <-trans2.Consumer():
+			switch cmd := rpc.Command.(type) {
+			case *raft.RequestPreVoteRequest:
+				rpc.RespChan <- raft.RPCResponse{
+					Response: &raft.RequestPreVoteResponse{
+						Term:    cmd.Term,
+						Granted: true,
+					},
+				}
+			}
+		case <-time.After(5 * time.Second):
+		}
+	}()
+
+	// Send RPC from trans1
+	req := &raft.RequestPreVoteRequest{
+		Term:         1,
+		LastLogIndex: 10,
+		LastLogTerm:  1,
+	}
+	resp := &raft.RequestPreVoteResponse{}
+
+	// Retry loop for RequestPreVote to allow server startup time
+	var err error
+	for i := 0; i < 5; i++ {
+		err = trans1.RequestPreVote("id", addr2, req, resp)
+		if err == nil {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	require.NoError(t, err)
+	require.True(t, resp.Granted)
+	require.Equal(t, uint64(1), resp.Term)
+}

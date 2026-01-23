@@ -263,6 +263,28 @@ func (t *GrpcTransport) RequestVote(id raft.ServerID, target raft.ServerAddress,
 	return nil
 }
 
+// RequestPreVote sends a RequestPreVote RPC to the given target.
+func (t *GrpcTransport) RequestPreVote(id raft.ServerID, target raft.ServerAddress, args *raft.RequestPreVoteRequest, resp *raft.RequestPreVoteResponse) error {
+	conn, err := t.getPeer(target)
+	if err != nil {
+		return err
+	}
+	client := raftv1.NewRaftTransportServiceClient(conn)
+
+	req := encodeRequestPreVoteRequest(args)
+
+	ctx, cancel := context.WithTimeout(context.Background(), t.timeout)
+	defer cancel()
+
+	rpcResp, err := client.RequestPreVote(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	decodeRequestPreVoteResponse(rpcResp, resp)
+	return nil
+}
+
 // InstallSnapshot sends an InstallSnapshot RPC to the given target.
 func (t *GrpcTransport) InstallSnapshot(id raft.ServerID, target raft.ServerAddress, args *raft.InstallSnapshotRequest, resp *raft.InstallSnapshotResponse, data io.Reader) error {
 	conn, err := t.getPeer(target)
@@ -401,6 +423,25 @@ func (s *grpcServer) RequestVote(ctx context.Context, req *raftv1.RequestVoteReq
 	}
 
 	return encodeRequestVoteResponse(resp.Response.(*raft.RequestVoteResponse)), nil
+}
+
+func (s *grpcServer) RequestPreVote(ctx context.Context, req *raftv1.RequestPreVoteRequest) (*raftv1.RequestPreVoteResponse, error) {
+	args := decodeRequestPreVoteRequest(req)
+
+	respChan := make(chan raft.RPCResponse, 1)
+	rpc := raft.RPC{
+		Command:  args,
+		RespChan: respChan,
+	}
+
+	s.trans.consumerCh <- rpc
+
+	resp := <-respChan
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+
+	return encodeRequestPreVoteResponse(resp.Response.(*raft.RequestPreVoteResponse)), nil
 }
 
 func (s *grpcServer) InstallSnapshot(stream raftv1.RaftTransportService_InstallSnapshotServer) error {
@@ -736,6 +777,38 @@ func decodeRequestVoteResponse(src *raftv1.RequestVoteResponse, dst *raft.Reques
 	dst.RPCHeader = decodeRPCHeader(src.Header)
 	dst.Term = src.Term
 	dst.Peers = src.Peers
+	dst.Granted = src.Granted
+}
+
+func encodeRequestPreVoteRequest(r *raft.RequestPreVoteRequest) *raftv1.RequestPreVoteRequest {
+	return &raftv1.RequestPreVoteRequest{
+		Header:       encodeRPCHeader(r.RPCHeader),
+		Term:         r.Term,
+		LastLogIndex: r.LastLogIndex,
+		LastLogTerm:  r.LastLogTerm,
+	}
+}
+
+func decodeRequestPreVoteRequest(r *raftv1.RequestPreVoteRequest) *raft.RequestPreVoteRequest {
+	return &raft.RequestPreVoteRequest{
+		RPCHeader:    decodeRPCHeader(r.Header),
+		Term:         r.Term,
+		LastLogIndex: r.LastLogIndex,
+		LastLogTerm:  r.LastLogTerm,
+	}
+}
+
+func encodeRequestPreVoteResponse(r *raft.RequestPreVoteResponse) *raftv1.RequestPreVoteResponse {
+	return &raftv1.RequestPreVoteResponse{
+		Header:  encodeRPCHeader(r.RPCHeader),
+		Term:    r.Term,
+		Granted: r.Granted,
+	}
+}
+
+func decodeRequestPreVoteResponse(src *raftv1.RequestPreVoteResponse, dst *raft.RequestPreVoteResponse) {
+	dst.RPCHeader = decodeRPCHeader(src.Header)
+	dst.Term = src.Term
 	dst.Granted = src.Granted
 }
 
