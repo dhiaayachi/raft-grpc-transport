@@ -159,6 +159,22 @@ This library includes benchmarks comparing `raft-grpc-transport` against the def
 
 ![Benchmark Results](/docs/benchmark_comparison.svg)
 
+| Metric | Transport | Result (approx) | Note |
+|--------|-----------|-----------------|------|
+| **Latency** (AppendEntries RTT) | `NetworkTransport` | ~25 µs/op | Baseline (TCP + MsgPack) |
+| | `GrpcTransport` | ~50 µs/op | +25 µs fixed overhead due to gRPC/Http2 framing & object allocation |
+| **Throughput** (Pipeline) | `NetworkTransport` | ~60k ops/sec | Limited by serial processing |
+| | `GrpcTransport` | ~220k ops/sec | significantly higher due to efficient HTTP/2 streaming |
+
+### Analysis
+
+1.  **Latency Overhead**: gRPC introduces a fixed latency overhead per request (approx 25µs in local tests). This is primarily due to:
+    *   **Protocol Complexity**: HTTP/2 framing and stream management is more complex than raw TCP.
+    *   **Object Allocation**: Mapping Raft structs to Protobuf structs requires allocating wrapper objects for every request.
+    *   *Note*: This overhead is **fixed** and not data-dependent. Increasing payloads (e.g., to 10KB) does not significantly widen the gap, as the underlying data byte slices are shared, not copied.
+
+2.  **Pipeline Efficiency**: For high-throughput scenarios, the `AppendEntriesPipeline` implementation leverages gRPC bidirectional streaming, which significantly outperforms the default transport's pipelining mechanism in synthetic benchmarks.
+
 ### Running Benchmarks
 
 You can run the benchmarks and generate a comparison graph locally:
