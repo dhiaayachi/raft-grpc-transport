@@ -17,6 +17,8 @@ import (
 
 var plot = flag.Bool("plot", false, "Generate benchmark plots (benchmark_comparison.svg)")
 
+var payloadSizes = []int{1024, 10 * 1024, 100 * 1024, 1000 * 1024}
+
 func setupGrpcTransport(b *testing.B, addr string) (*GrpcTransport, *grpc.Server, net.Listener) {
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -38,8 +40,7 @@ func setupGrpcTransport(b *testing.B, addr string) (*GrpcTransport, *grpc.Server
 	return trans, server, lis
 }
 
-// BenchmarkGrpc_AppendEntries benchmarks the RTT of AppendEntries using GrpcTransport
-func BenchmarkGrpc_AppendEntries(b *testing.B) {
+func runBenchmarkGrpc_AppendEntries(b *testing.B, size int) {
 	trans, server, lis := setupGrpcTransport(b, "127.0.0.1:0")
 	defer trans.Close()
 	defer server.Stop()
@@ -50,12 +51,9 @@ func BenchmarkGrpc_AppendEntries(b *testing.B) {
 	defer clientServer.Stop()
 	defer clientLis.Close()
 
-	// Connect client to server manually to ensure connection is ready?
-	// The transport dials on demand.
-
 	target := raft.ServerAddress(lis.Addr().String())
 
-	// Consumer loop to handle request
+	// Consumer loop
 	go func() {
 		for {
 			select {
@@ -79,74 +77,7 @@ func BenchmarkGrpc_AppendEntries(b *testing.B) {
 		Term:   1,
 		Leader: []byte("leader"),
 		Entries: []*raft.Log{
-			{Index: 1, Term: 1, Data: make([]byte, 1024*10)}, // 10KB payload
-		},
-	}
-	resp := &raft.AppendEntriesResponse{}
-
-	// Warmup/Ensure connection
-	if err := clientTrans.AppendEntries("server", target, args, resp); err != nil {
-		b.Fatalf("Warmup RPC failed: %v", err)
-	}
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		if err := clientTrans.AppendEntries("server", target, args, resp); err != nil {
-			b.Fatalf("RPC failed: %v", err)
-		}
-	}
-}
-
-// BenchmarkNet_AppendEntries benchmarks the RTT of AppendEntries using raft.NetworkTransport
-func BenchmarkNet_AppendEntries(b *testing.B) {
-	// Server
-	lis, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		b.Fatalf("failed to listen: %v", err)
-	}
-	addr := lis.Addr().String()
-	lis.Close()
-
-	serverTrans, err := raft.NewTCPTransport(addr, nil, 3, 10*time.Second, io.Discard)
-	if err != nil {
-		b.Fatalf("failed to create server transport: %v", err)
-	}
-	defer serverTrans.Close()
-
-	// Client
-	clientTrans, err := raft.NewTCPTransport("127.0.0.1:0", nil, 3, 10*time.Second, io.Discard)
-	if err != nil {
-		b.Fatalf("failed to create client transport: %v", err)
-	}
-	defer clientTrans.Close()
-
-	target := raft.ServerAddress(serverTrans.LocalAddr())
-
-	// Consumer loop
-	go func() {
-		for {
-			select {
-			case rpc := <-serverTrans.Consumer():
-				switch rpc.Command.(type) {
-				case *raft.AppendEntriesRequest:
-					rpc.RespChan <- raft.RPCResponse{
-						Response: &raft.AppendEntriesResponse{
-							Success: true,
-							Term:    1,
-						},
-					}
-				}
-			case <-time.After(5 * time.Second):
-				return
-			}
-		}
-	}()
-
-	args := &raft.AppendEntriesRequest{
-		Term:   1,
-		Leader: []byte("leader"),
-		Entries: []*raft.Log{
-			{Index: 1, Term: 1, Data: make([]byte, 1024)}, // 1KB payload
+			{Index: 1, Term: 1, Data: make([]byte, size)},
 		},
 	}
 	resp := &raft.AppendEntriesResponse{}
@@ -164,8 +95,73 @@ func BenchmarkNet_AppendEntries(b *testing.B) {
 	}
 }
 
-// BenchmarkGrpc_Pipeline benchmarks throughput of Pipeline using GrpcTransport
-func BenchmarkGrpc_Pipeline(b *testing.B) {
+func runBenchmarkNet_AppendEntries(b *testing.B, size int) {
+	// Server
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		b.Fatalf("failed to listen: %v", err)
+	}
+	addr := lis.Addr().String()
+	lis.Close()
+
+	serverTrans, err := raft.NewTCPTransport(addr, nil, 3, 10*time.Second, io.Discard)
+	if err != nil {
+		b.Fatalf("failed to create server transport: %v", err)
+	}
+	defer serverTrans.Close()
+
+	// Client
+	clientTrans, err := raft.NewTCPTransport("127.0.0.1:0", nil, 3, 10*time.Second, io.Discard)
+	if err != nil {
+		b.Fatalf("failed to create client transport: %v", err)
+	}
+	defer clientTrans.Close()
+
+	target := raft.ServerAddress(serverTrans.LocalAddr())
+
+	// Consumer loop
+	go func() {
+		for {
+			select {
+			case rpc := <-serverTrans.Consumer():
+				switch rpc.Command.(type) {
+				case *raft.AppendEntriesRequest:
+					rpc.RespChan <- raft.RPCResponse{
+						Response: &raft.AppendEntriesResponse{
+							Success: true,
+							Term:    1,
+						},
+					}
+				}
+			case <-time.After(5 * time.Second):
+				return
+			}
+		}
+	}()
+
+	args := &raft.AppendEntriesRequest{
+		Term:   1,
+		Leader: []byte("leader"),
+		Entries: []*raft.Log{
+			{Index: 1, Term: 1, Data: make([]byte, size)},
+		},
+	}
+	resp := &raft.AppendEntriesResponse{}
+
+	// Warmup
+	if err := clientTrans.AppendEntries("server", target, args, resp); err != nil {
+		b.Fatalf("Warmup RPC failed: %v", err)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if err := clientTrans.AppendEntries("server", target, args, resp); err != nil {
+			b.Fatalf("RPC failed: %v", err)
+		}
+	}
+}
+
+func runBenchmarkGrpc_Pipeline(b *testing.B, size int) {
 	trans, server, lis := setupGrpcTransport(b, "127.0.0.1:0")
 	defer trans.Close()
 	defer server.Stop()
@@ -208,12 +204,12 @@ func BenchmarkGrpc_Pipeline(b *testing.B) {
 		Term:   1,
 		Leader: []byte("leader"),
 		Entries: []*raft.Log{
-			{Index: 1, Term: 1, Data: make([]byte, 1024)}, // 1KB payload
+			{Index: 1, Term: 1, Data: make([]byte, size)},
 		},
 	}
 	resp := &raft.AppendEntriesResponse{}
 
-	// Drain consumer to keep it flowing
+	// Drain consumer
 	stopCh := make(chan struct{})
 	defer close(stopCh)
 	go func() {
@@ -236,8 +232,7 @@ func BenchmarkGrpc_Pipeline(b *testing.B) {
 	}
 }
 
-// BenchmarkNet_Pipeline benchmarks throughput of Pipeline using raft.NetworkTransport
-func BenchmarkNet_Pipeline(b *testing.B) {
+func runBenchmarkNet_Pipeline(b *testing.B, size int) {
 	// Server
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -291,12 +286,10 @@ func BenchmarkNet_Pipeline(b *testing.B) {
 		Term:   1,
 		Leader: []byte("leader"),
 		Entries: []*raft.Log{
-			{Index: 1, Term: 1, Data: make([]byte, 1024)}, // 1KB payload
+			{Index: 1, Term: 1, Data: make([]byte, size)},
 		},
 	}
 	resp := &raft.AppendEntriesResponse{}
-
-	b.ResetTimer()
 
 	// Drain consumer
 	stopCh := make(chan struct{})
@@ -312,6 +305,7 @@ func BenchmarkNet_Pipeline(b *testing.B) {
 		}
 	}()
 
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, err := pipeline.AppendEntries(args, resp)
 		if err != nil {
@@ -320,115 +314,207 @@ func BenchmarkNet_Pipeline(b *testing.B) {
 	}
 }
 
+// ResultKey identifies a specific benchmark result
+type ResultKey struct {
+	Name string
+	Size int
+}
+
 // TestMetrics plots the results if -plot flag is provided
 func TestMetrics(t *testing.T) {
 	if !*plot {
 		t.Skip("skipping plot generation, use -plot to run")
 	}
 
-	results := make(map[string]testing.BenchmarkResult)
+	results := make(map[ResultKey]testing.BenchmarkResult)
 
-	benchmarks := []struct {
-		Name string
-		Func func(*testing.B)
-	}{
-		{"Grpc_AppendEntries", BenchmarkGrpc_AppendEntries},
-		{"Net_AppendEntries", BenchmarkNet_AppendEntries},
-		{"Grpc_Pipeline", BenchmarkGrpc_Pipeline},
-		{"Net_Pipeline", BenchmarkNet_Pipeline},
+	for _, size := range payloadSizes {
+		// Latency - gRPC
+		res := testing.Benchmark(func(b *testing.B) { runBenchmarkGrpc_AppendEntries(b, size) })
+		results[ResultKey{"Grpc_AppendEntries", size}] = res
+		fmt.Printf("Grpc_AppendEntries (%d bytes): %d ns/op\n", size, res.NsPerOp())
+
+		// Latency - Net
+		res = testing.Benchmark(func(b *testing.B) { runBenchmarkNet_AppendEntries(b, size) })
+		results[ResultKey{"Net_AppendEntries", size}] = res
+		fmt.Printf("Net_AppendEntries (%d bytes): %d ns/op\n", size, res.NsPerOp())
+
+		// Throughput - gRPC
+		res = testing.Benchmark(func(b *testing.B) { runBenchmarkGrpc_Pipeline(b, size) })
+		results[ResultKey{"Grpc_Pipeline", size}] = res
+		fmt.Printf("Grpc_Pipeline (%d bytes): %d ns/op\n", size, res.NsPerOp())
+
+		// Throughput - Net
+		res = testing.Benchmark(func(b *testing.B) { runBenchmarkNet_Pipeline(b, size) })
+		results[ResultKey{"Net_Pipeline", size}] = res
+		fmt.Printf("Net_Pipeline (%d bytes): %d ns/op\n", size, res.NsPerOp())
 	}
 
-	for _, bm := range benchmarks {
-		res := testing.Benchmark(bm.Func)
-		results[bm.Name] = res
-		fmt.Printf("%s: %d ns/op\n", bm.Name, res.NsPerOp())
-	}
-
-	generatePlot(t, results)
+	generateSVG(t, results)
 }
 
-func generatePlot(t *testing.T, results map[string]testing.BenchmarkResult) {
+func generateSVG(t *testing.T, results map[ResultKey]testing.BenchmarkResult) {
 	f, err := os.Create("benchmark_comparison.svg")
 	if err != nil {
 		t.Fatalf("failed to create plot file: %v", err)
 	}
 	defer f.Close()
 
-	grpcLat := float64(results["Grpc_AppendEntries"].NsPerOp())
-	netLat := float64(results["Net_AppendEntries"].NsPerOp())
+	// Constants for layout
+	width, height := 800.0, 600.0
+	margin := 60.0
+	chartHeight := (height - 3*margin) / 2
+	chartWidth := width - 2*margin
 
-	grpcOps := float64(results["Grpc_Pipeline"].N) / results["Grpc_Pipeline"].T.Seconds()
-	netOps := float64(results["Net_Pipeline"].N) / results["Net_Pipeline"].T.Seconds()
+	// Helper to scale Y values
+	getMaxLatency := func() float64 {
+		max := 0.0
+		for _, r := range results {
+			// Filtering just latency tests implicitly by magnitude or name check?
+			// But wait, we have both latency and throughput.
+			// Let's just find max of observed latency tests.
+			l := float64(r.NsPerOp())
+			if l > max {
+				max = l
+			}
+		}
+		return max * 1.1 // Add 10% headroom
+	}
 
-	// Simple SVG Bar Chart
-	// Width: 800, Height: 400
-	// Two charts: Latency (Left), Throughput (Right)
+	getMaxOps := func() float64 {
+		max := 0.0
+		for k, r := range results {
+			if k.Name == "Grpc_Pipeline" || k.Name == "Net_Pipeline" {
+				ops := float64(r.N) / r.T.Seconds()
+				if ops > max {
+					max = ops
+				}
+			}
+		}
+		return max * 1.1
+	}
 
-	svg := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg width="800" height="400" xmlns="http://www.w3.org/2000/svg">
+	maxLat := getMaxLatency()
+	maxOps := getMaxOps()
+
+	// Helper to get X position for ordinal payload sizes
+	getX := func(idx int) float64 {
+		// spread points evenly across chartWidth
+		// 4 points -> 0, 1/3, 2/3, 1 (relative)
+		if len(payloadSizes) == 1 {
+			return margin + chartWidth/2
+		}
+		step := chartWidth / float64(len(payloadSizes)-1)
+		return margin + float64(idx)*step
+	}
+
+	header := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="%.0f" height="%.0f" xmlns="http://www.w3.org/2000/svg">
   <style>
     .text { font-family: sans-serif; font-size: 12px; }
     .title { font-family: sans-serif; font-size: 16px; font-weight: bold; }
-    .bar-grpc { fill: rgba(54, 162, 235, 0.8); }
-    .bar-net { fill: rgba(255, 99, 132, 0.8); }
+    .axis { stroke: black; stroke-width: 1; }
+    .grid { stroke: #ddd; stroke-width: 1; stroke-dasharray: 4; }
+    .line-grpc { fill: none; stroke: rgba(54, 162, 235, 1); stroke-width: 2; }
+    .line-net { fill: none; stroke: rgba(255, 99, 132, 1); stroke-width: 2; }
+    .dot-grpc { fill: rgba(54, 162, 235, 1); }
+    .dot-net { fill: rgba(255, 99, 132, 1); }
   </style>
+  <text x="%.0f" y="30" text-anchor="middle" class="title">Transport Benchmark Comparison</text>
+`, width, height, width/2)
 
-  <!-- Title -->
-  <text x="400" y="30" text-anchor="middle" class="title">Transport Benchmark Comparison</text>
+	fmt.Fprint(f, header)
 
-  <!-- Latency Chart (Left) -->
-  <g transform="translate(50, 60)">
-    <text x="150" y="-10" text-anchor="middle" class="title" font-size="14">Latency (ns/op)</text>
-    <text x="150" y="5" text-anchor="middle" class="text" font-size="10">(Lower is better)</text>
-    
-    <!-- Y Axis -->
-    <line x1="0" y1="0" x2="0" y2="300" stroke="black" width="2" />
-    <line x1="0" y1="300" x2="300" y2="300" stroke="black" width="2" />
+	// Draw Grid & Axis for Chart 1 (Latency)
+	// Y from margin+10 (title) -> margin+chartHeight
+	// Base Y = margin + chartHeight
+	baseY1 := margin + chartHeight
 
-    <!-- Bars -->
-    <!-- Scale: Max approx 60000ns. 300px height. Scale = 300/60000 = 0.005 -->
-    <!-- Grpc Bar -->
-    <rect x="50" y="%f" width="80" height="%f" class="bar-grpc" />
-    <text x="90" y="%f" text-anchor="middle" class="text">%.0f</text>
-    <text x="90" y="315" text-anchor="middle" class="text">gRPC</text>
+	// Draw Latency Title
+	fmt.Fprintf(f, `<text x="%.0f" y="%.0f" text-anchor="middle" class="title" font-size="14">Latency (ns/op) - Lower is better</text>`, width/2, margin-10)
 
-    <!-- Net Bar -->
-    <rect x="170" y="%f" width="80" height="%f" class="bar-net" />
-    <text x="210" y="%f" text-anchor="middle" class="text">%.0f</text>
-    <text x="210" y="315" text-anchor="middle" class="text">Network</text>
-  </g>
+	// Draw Axes 1
+	fmt.Fprintf(f, `<line x1="%.0f" y1="%.0f" x2="%.0f" y2="%.0f" class="axis" />`, margin, baseY1, width-margin, baseY1) // X Axis
+	fmt.Fprintf(f, `<line x1="%.0f" y1="%.0f" x2="%.0f" y2="%.0f" class="axis" />`, margin, margin, margin, baseY1)       // Y Axis
 
-  <!-- Throughput Chart (Right) -->
-  <g transform="translate(450, 60)">
-    <text x="150" y="-10" text-anchor="middle" class="title" font-size="14">Throughput (ops/sec)</text>
-    <text x="150" y="5" text-anchor="middle" class="text" font-size="10">(Higher is better)</text>
+	// Draw X Labels 1
+	for i, size := range payloadSizes {
+		x := getX(i)
+		label := fmt.Sprintf("%dKB", size/1024)
+		if size >= 1024*1024 {
+			label = fmt.Sprintf("%dMB", size/(1024*1024))
+		}
+		fmt.Fprintf(f, `<text x="%.0f" y="%.0f" text-anchor="middle" class="text">%s</text>`, x, baseY1+15, label)
+		fmt.Fprintf(f, `<line x1="%.0f" y1="%.0f" x2="%.0f" y2="%.0f" class="axis" />`, x, baseY1, x, baseY1+5)
+	}
 
-    <!-- Y Axis -->
-    <line x1="0" y1="0" x2="0" y2="300" stroke="black" width="2" />
-    <line x1="0" y1="300" x2="300" y2="300" stroke="black" width="2" />
+	// Draw Lines 1
+	drawSeries := func(name string, cssLine, cssDot string, scaleY func(float64) float64) {
+		points := ""
+		for i, size := range payloadSizes {
+			res := results[ResultKey{name, size}]
+			val := float64(res.NsPerOp())
+			if name == "Grpc_Pipeline" || name == "Net_Pipeline" {
+				val = float64(res.N) / res.T.Seconds()
+			}
 
-    <!-- Bars -->
-    <!-- Scale: Max approx 300000 ops. 300px height. Scale = 300/300000 = 0.001 -->
-    <!-- Grpc Bar -->
-    <rect x="50" y="%f" width="80" height="%f" class="bar-grpc" />
-    <text x="90" y="%f" text-anchor="middle" class="text">%.0f</text>
-    <text x="90" y="315" text-anchor="middle" class="text">gRPC</text>
+			x := getX(i)
+			y := scaleY(val)
+			points += fmt.Sprintf("%.2f,%.2f ", x, y)
 
-    <!-- Net Bar -->
-    <rect x="170" y="%f" width="80" height="%f" class="bar-net" />
-    <text x="210" y="%f" text-anchor="middle" class="text">%.0f</text>
-    <text x="210" y="315" text-anchor="middle" class="text">Network</text>
-  </g>
-</svg>`,
-		// Latency Calc
-		300-(grpcLat*0.005), grpcLat*0.005, 300-(grpcLat*0.005)-5, grpcLat,
-		300-(netLat*0.005), netLat*0.005, 300-(netLat*0.005)-5, netLat,
+			// Draw Dot
+			fmt.Fprintf(f, `<circle cx="%.2f" cy="%.2f" r="4" class="%s" />`, x, y, cssDot)
+			// Draw Value
+			fmt.Fprintf(f, `<text x="%.2f" y="%.2f" text-anchor="middle" class="text" dy="-8">%.0f</text>`, x, y, val)
+		}
+		fmt.Fprintf(f, `<polyline points="%s" class="%s" />`, points, cssLine)
+	}
 
-		// Throughput Calc
-		300-(grpcOps*0.001), grpcOps*0.001, 300-(grpcOps*0.001)-5, grpcOps,
-		300-(netOps*0.001), netOps*0.001, 300-(netOps*0.001)-5, netOps,
-	)
+	scaleYLat := func(val float64) float64 {
+		return baseY1 - (val/maxLat)*chartHeight
+	}
 
-	fmt.Fprint(f, svg)
+	drawSeries("Grpc_AppendEntries", "line-grpc", "dot-grpc", scaleYLat)
+	drawSeries("Net_AppendEntries", "line-net", "dot-net", scaleYLat)
+
+	// Draw Grid & Axis for Chart 2 (Throughput)
+	baseY2 := baseY1 + margin + chartHeight
+	topY2 := baseY1 + margin
+
+	// Draw Throughput Title
+	fmt.Fprintf(f, `<text x="%.0f" y="%.0f" text-anchor="middle" class="title" font-size="14">Throughput (ops/sec) - Higher is better</text>`, width/2, topY2-10)
+
+	// Draw Axes 2
+	fmt.Fprintf(f, `<line x1="%.0f" y1="%.0f" x2="%.0f" y2="%.0f" class="axis" />`, margin, baseY2, width-margin, baseY2) // X Axis
+	fmt.Fprintf(f, `<line x1="%.0f" y1="%.0f" x2="%.0f" y2="%.0f" class="axis" />`, margin, topY2, margin, baseY2)        // Y Axis
+
+	// Draw X Labels 2
+	for i, size := range payloadSizes {
+		x := getX(i)
+		label := fmt.Sprintf("%dKB", size/1024)
+		if size >= 1024*1024 {
+			label = fmt.Sprintf("%dMB", size/(1024*1024))
+		}
+		fmt.Fprintf(f, `<text x="%.0f" y="%.0f" text-anchor="middle" class="text">%s</text>`, x, baseY2+15, label)
+		fmt.Fprintf(f, `<line x1="%.0f" y1="%.0f" x2="%.0f" y2="%.0f" class="axis" />`, x, baseY2, x, baseY2+5)
+	}
+
+	scaleYOps := func(val float64) float64 {
+		return baseY2 - (val/maxOps)*chartHeight
+	}
+
+	drawSeries("Grpc_Pipeline", "line-grpc", "dot-grpc", scaleYOps)
+	drawSeries("Net_Pipeline", "line-net", "dot-net", scaleYOps)
+
+	// Legend (Bottom Center)
+	fmt.Fprintf(f, `
+<g transform="translate(%.0f, %.0f)">
+  <rect x="0" y="0" width="20" height="20" class="bar-grpc" />
+  <text x="25" y="15" class="text">gRPC</text>
+  <rect x="100" y="0" width="20" height="20" class="bar-net" />
+  <text x="125" y="15" class="text">Network</text>
+</g>`, width/2-70, height-30)
+
+	fmt.Fprint(f, "</svg>")
 	t.Logf("Generated benchmark_comparison.svg")
 }
