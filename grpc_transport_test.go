@@ -64,7 +64,7 @@ func TestTransport_Connection(t *testing.T) {
 	require.NotNil(t, conn)
 
 	// Wait momentarily for connection state change (optional, but good for verification)
-	_ = conn.GetState()
+	// _ = conn.GetState()
 }
 
 func TestTransport_AppendEntries(t *testing.T) {

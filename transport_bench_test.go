@@ -354,7 +354,7 @@ func TestMetrics(t *testing.T) {
 }
 
 func generateSVG(t *testing.T, results map[ResultKey]testing.BenchmarkResult) {
-	f, err := os.Create("benchmark_comparison.svg")
+	f, err := os.Create("docs/benchmark_comparison.svg")
 	if err != nil {
 		t.Fatalf("failed to create plot file: %v", err)
 	}

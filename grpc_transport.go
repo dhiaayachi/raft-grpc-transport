@@ -4,13 +4,12 @@ import (
 	"context"
 	"io"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	raftv1 "github.com/dhiaayachi/raft-grpc-transport/gen/go/proto/raft/v1"
+	"github.com/dhiaayachi/raft-grpc-transport/pkg/pool"
 	"github.com/hashicorp/raft"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 var _ raft.Transport = (*GrpcTransport)(nil)
@@ -24,7 +23,7 @@ type GrpcTransport struct {
 	consumerCh chan raft.RPC
 
 	// peers is a map of peer address to connection pool.
-	peers map[raft.ServerAddress]*connectionPool
+	peers map[raft.ServerAddress]*pool.Pool
 	// peersMutex protects the peers map.
 	peersMutex sync.RWMutex
 
@@ -65,7 +64,7 @@ func NewGrpcTransport(localAddr string, server *grpc.Server, opts ...TransportOp
 	t := &GrpcTransport{
 		localAddr:  raft.ServerAddress(localAddr),
 		consumerCh: make(chan raft.RPC),
-		peers:      make(map[raft.ServerAddress]*connectionPool),
+		peers:      make(map[raft.ServerAddress]*pool.Pool),
 		timeout:    10 * time.Second, // Default timeout
 		poolSize:   3,                // Default pool size
 	}
@@ -390,10 +389,10 @@ func (t *GrpcTransport) Close() error {
 	t.peersMutex.Lock()
 	defer t.peersMutex.Unlock()
 
-	for _, pool := range t.peers {
-		pool.close()
+	for _, p := range t.peers {
+		p.Close()
 	}
-	t.peers = make(map[raft.ServerAddress]*connectionPool)
+	t.peers = make(map[raft.ServerAddress]*pool.Pool)
 
 	return nil
 }
@@ -565,65 +564,29 @@ func (s *grpcServer) AppendEntriesPipeline(stream raftv1.RaftTransportService_Ap
 
 // Helpers
 
-// connectionPool manages a pool of gRPC connections to a single peer.
-type connectionPool struct {
-	conns []*grpc.ClientConn
-	next  uint64
-}
-
-func newConnectionPool(addr string, size int) (*connectionPool, error) {
-	pool := &connectionPool{
-		conns: make([]*grpc.ClientConn, size),
-	}
-
-	for i := 0; i < size; i++ {
-		conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-		if err != nil {
-			// Abort and close already opened connections
-			for j := 0; j < i; j++ {
-				pool.conns[j].Close()
-			}
-			return nil, err
-		}
-		pool.conns[i] = conn
-	}
-	return pool, nil
-}
-
-func (p *connectionPool) get() *grpc.ClientConn {
-	idx := atomic.AddUint64(&p.next, 1) % uint64(len(p.conns))
-	return p.conns[idx]
-}
-
-func (p *connectionPool) close() {
-	for _, conn := range p.conns {
-		conn.Close()
-	}
-}
-
-func (t *GrpcTransport) getPeer(addr raft.ServerAddress) (*grpc.ClientConn, error) {
+func (t *GrpcTransport) getPeer(addr raft.ServerAddress) (grpc.ClientConnInterface, error) {
 	t.peersMutex.RLock()
-	pool, ok := t.peers[addr]
+	p, ok := t.peers[addr]
 	t.peersMutex.RUnlock()
 	if ok {
-		return pool.get(), nil
+		return p, nil
 	}
 
 	t.peersMutex.Lock()
 	defer t.peersMutex.Unlock()
 
 	// Double check
-	if pool, ok := t.peers[addr]; ok {
-		return pool.get(), nil
+	if p, ok := t.peers[addr]; ok {
+		return p, nil
 	}
 
-	pool, err := newConnectionPool(string(addr), t.poolSize)
+	p, err := pool.New(string(addr), t.poolSize)
 	if err != nil {
 		return nil, err
 	}
 
-	t.peers[addr] = pool
-	return pool.get(), nil
+	t.peers[addr] = p
+	return p, nil
 }
 
 type snapshotReader struct {
