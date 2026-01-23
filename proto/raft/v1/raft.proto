@@ -131,17 +131,4 @@ message RequestPreVoteResponse {
   bool granted = 3;
 }
 
-message RequestPreVoteRequest {
-  RPCHeader header = 1;
-  uint64 term = 2;
-  uint64 last_log_index = 4;
-  uint64 last_log_term = 5;
-}
-
-message RequestPreVoteResponse {
-  RPCHeader header = 1;
-  uint64 term = 2;
-  bool granted = 4;
-}
-
 message TimeoutNowResponse { RPCHeader header = 1; }
