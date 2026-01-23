@@ -15,7 +15,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-var plot = flag.Bool("plot", false, "Generate benchmark plots (benchmark_comparison.html)")
+var plot = flag.Bool("plot", false, "Generate benchmark plots (benchmark_comparison.svg)")
 
 func setupGrpcTransport(b *testing.B, addr string) (*GrpcTransport, *grpc.Server, net.Listener) {
 	lis, err := net.Listen("tcp", addr)
@@ -348,82 +348,87 @@ func TestMetrics(t *testing.T) {
 }
 
 func generatePlot(t *testing.T, results map[string]testing.BenchmarkResult) {
-	f, err := os.Create("benchmark_comparison.html")
+	f, err := os.Create("benchmark_comparison.svg")
 	if err != nil {
 		t.Fatalf("failed to create plot file: %v", err)
 	}
 	defer f.Close()
 
-	// Simple Chart.js template
-	html := `<!DOCTYPE html>
-<html>
-<head>
-    <title>Benchmark Comparison</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body { font-family: sans-serif; padding: 20px; }
-        .chart-container { width: 800px; margin: 20px auto; }
-    </style>
-</head>
-<body>
-    <h1>Transport Benchmark Comparison</h1>
-    <div class="chart-container">
-        <canvas id="latencyChart"></canvas>
-    </div>
-    <div class="chart-container">
-        <canvas id="throughputChart"></canvas>
-    </div>
-
-    <script>
-        const ctxLatency = document.getElementById('latencyChart').getContext('2d');
-        const ctxThroughput = document.getElementById('throughputChart').getContext('2d');
-
-        const latencyData = {
-            labels: ['Grpc', 'Network'],
-            datasets: [{
-                label: 'AppendEntries Latency (ns/op) - Lower is better',
-                data: [%d, %d],
-                backgroundColor: ['rgba(54, 162, 235, 0.5)', 'rgba(255, 99, 132, 0.5)'],
-                borderColor: ['rgba(54, 162, 235, 1)', 'rgba(255, 99, 132, 1)'],
-                borderWidth: 1
-            }]
-        };
-
-        // Estimating throughput as 1e9 / nsPerOp * (1KB payload) -> MB/s roughly, or just Ops/sec
-        // Or actually, testing.BenchmarkResult doesn't give throughput direct unless SetBytes called.
-        // We didn't call SetBytes. Let's use Ops/Sec for throughput comparison for Pipeline.
-        const throughputData = {
-            labels: ['Grpc', 'Network'],
-            datasets: [{
-                label: 'Pipeline Throughput (Ops/sec) - Higher is better',
-                data: [%f, %f],
-                backgroundColor: ['rgba(54, 162, 235, 0.5)', 'rgba(255, 99, 132, 0.5)'],
-                borderColor: ['rgba(54, 162, 235, 1)', 'rgba(255, 99, 132, 1)'],
-                borderWidth: 1
-            }]
-        };
-
-        new Chart(ctxLatency, {
-            type: 'bar',
-            data: latencyData,
-            options: { scales: { y: { beginAtZero: true } } }
-        });
-
-        new Chart(ctxThroughput, {
-            type: 'bar',
-            data: throughputData,
-            options: { scales: { y: { beginAtZero: true } } }
-        });
-    </script>
-</body>
-</html>`
-
-	grpcLat := results["Grpc_AppendEntries"].NsPerOp()
-	netLat := results["Net_AppendEntries"].NsPerOp()
+	grpcLat := float64(results["Grpc_AppendEntries"].NsPerOp())
+	netLat := float64(results["Net_AppendEntries"].NsPerOp())
 
 	grpcOps := float64(results["Grpc_Pipeline"].N) / results["Grpc_Pipeline"].T.Seconds()
 	netOps := float64(results["Net_Pipeline"].N) / results["Net_Pipeline"].T.Seconds()
 
-	fmt.Fprintf(f, html, grpcLat, netLat, grpcOps, netOps)
-	t.Logf("Generated benchmark_comparison.html")
+	// Simple SVG Bar Chart
+	// Width: 800, Height: 400
+	// Two charts: Latency (Left), Throughput (Right)
+
+	svg := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="800" height="400" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .text { font-family: sans-serif; font-size: 12px; }
+    .title { font-family: sans-serif; font-size: 16px; font-weight: bold; }
+    .bar-grpc { fill: rgba(54, 162, 235, 0.8); }
+    .bar-net { fill: rgba(255, 99, 132, 0.8); }
+  </style>
+
+  <!-- Title -->
+  <text x="400" y="30" text-anchor="middle" class="title">Transport Benchmark Comparison</text>
+
+  <!-- Latency Chart (Left) -->
+  <g transform="translate(50, 60)">
+    <text x="150" y="-10" text-anchor="middle" class="title" font-size="14">Latency (ns/op)</text>
+    <text x="150" y="5" text-anchor="middle" class="text" font-size="10">(Lower is better)</text>
+    
+    <!-- Y Axis -->
+    <line x1="0" y1="0" x2="0" y2="300" stroke="black" width="2" />
+    <line x1="0" y1="300" x2="300" y2="300" stroke="black" width="2" />
+
+    <!-- Bars -->
+    <!-- Scale: Max approx 60000ns. 300px height. Scale = 300/60000 = 0.005 -->
+    <!-- Grpc Bar -->
+    <rect x="50" y="%f" width="80" height="%f" class="bar-grpc" />
+    <text x="90" y="%f" text-anchor="middle" class="text">%.0f</text>
+    <text x="90" y="315" text-anchor="middle" class="text">gRPC</text>
+
+    <!-- Net Bar -->
+    <rect x="170" y="%f" width="80" height="%f" class="bar-net" />
+    <text x="210" y="%f" text-anchor="middle" class="text">%.0f</text>
+    <text x="210" y="315" text-anchor="middle" class="text">Network</text>
+  </g>
+
+  <!-- Throughput Chart (Right) -->
+  <g transform="translate(450, 60)">
+    <text x="150" y="-10" text-anchor="middle" class="title" font-size="14">Throughput (ops/sec)</text>
+    <text x="150" y="5" text-anchor="middle" class="text" font-size="10">(Higher is better)</text>
+
+    <!-- Y Axis -->
+    <line x1="0" y1="0" x2="0" y2="300" stroke="black" width="2" />
+    <line x1="0" y1="300" x2="300" y2="300" stroke="black" width="2" />
+
+    <!-- Bars -->
+    <!-- Scale: Max approx 300000 ops. 300px height. Scale = 300/300000 = 0.001 -->
+    <!-- Grpc Bar -->
+    <rect x="50" y="%f" width="80" height="%f" class="bar-grpc" />
+    <text x="90" y="%f" text-anchor="middle" class="text">%.0f</text>
+    <text x="90" y="315" text-anchor="middle" class="text">gRPC</text>
+
+    <!-- Net Bar -->
+    <rect x="170" y="%f" width="80" height="%f" class="bar-net" />
+    <text x="210" y="%f" text-anchor="middle" class="text">%.0f</text>
+    <text x="210" y="315" text-anchor="middle" class="text">Network</text>
+  </g>
+</svg>`,
+		// Latency Calc
+		300-(grpcLat*0.005), grpcLat*0.005, 300-(grpcLat*0.005)-5, grpcLat,
+		300-(netLat*0.005), netLat*0.005, 300-(netLat*0.005)-5, netLat,
+
+		// Throughput Calc
+		300-(grpcOps*0.001), grpcOps*0.001, 300-(grpcOps*0.001)-5, grpcOps,
+		300-(netOps*0.001), netOps*0.001, 300-(netOps*0.001)-5, netOps,
+	)
+
+	fmt.Fprint(f, svg)
+	t.Logf("Generated benchmark_comparison.svg")
 }
