@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dhiaayachi/raft-grpc-transport/conn/pool"
 	raftv1 "github.com/dhiaayachi/raft-grpc-transport/gen/go/proto/raft/v1"
-	"github.com/dhiaayachi/raft-grpc-transport/pkg/pool"
 	"github.com/hashicorp/raft"
 	"google.golang.org/grpc"
 )
