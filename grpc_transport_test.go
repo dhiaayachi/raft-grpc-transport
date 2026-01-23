@@ -62,9 +62,6 @@ func TestTransport_Connection(t *testing.T) {
 	conn, err := trans1.getPeer(addr2)
 	require.NoError(t, err)
 	require.NotNil(t, conn)
-
-	// Wait momentarily for connection state change (optional, but good for verification)
-	// _ = conn.GetState()
 }
 
 func TestTransport_AppendEntries(t *testing.T) {
